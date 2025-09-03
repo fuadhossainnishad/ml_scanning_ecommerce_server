@@ -3,12 +3,17 @@ import validationRequest from "../../middleware/validationRequest";
 import AuthValidationSchema from "./auth.validation";
 import AuthController from "./auth.controller";
 import auth from "../../middleware/auth";
+import { upload } from "../../middleware/multer/multer";
+import { fileHandle } from "../../middleware/fileHandle";
 
 const router = express.Router();
 
 router.post(
   "/signup",
   // validationRequest(AuthValidationSchema.userSignInValidation),
+  upload.fields([{ name: "profile", maxCount: 1 }, { name: "brandLogo", maxCount: 1 }]),
+  fileHandle("profile"),
+  fileHandle("brandLogo"),
   AuthController.signUp
 );
 

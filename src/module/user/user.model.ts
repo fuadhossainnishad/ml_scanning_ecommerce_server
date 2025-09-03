@@ -5,50 +5,9 @@ import Admin from "../admin/admin.model";
 import { SubStatus } from "../subscription/subscription.interface";
 import { SubscriptionSupportSchema } from "../subscription/subscription.model";
 
-// Helpers
-const isRequired = function (this: IUser): boolean {
-  return !!this.firstName;
-};
 
-// const isPlanRequired = function (this: IUser): boolean {
-//   return !this.trial;
-// };
-
-// Schema
 export const UserSchema: Schema = new Schema<IUser>(
   {
-    // sub: {
-    //   type: String,
-    //   required: false,
-    // },
-    // authProviderName: {
-    //   type: String,
-    //   required: isRequiredForSocial,
-    // },
-    firstName: {
-      type: String,
-      required: true,
-    },
-    lastName: {
-      type: String,
-      required: isRequired,
-    },
-    mobile: {
-      type: String,
-      required: isRequired,
-    },
-    countryCode: {
-      type: String,
-      required: isRequired,
-    },
-    uic: {
-      type: String,
-      default: "",
-    },
-    rank: {
-      type: String,
-      default: "",
-    },
     subscriptionPlan: {
       type: SubscriptionSupportSchema.SubscriptionPlanSchema,
       required: false,
@@ -64,17 +23,10 @@ export const UserSchema: Schema = new Schema<IUser>(
       default: SubStatus.INACTIVE,
       required: true,
     },
-    last_login: {
-      type: Date,
-      default: Date.now,
-    },
-    failed_attempts: {
-      type: Number,
-      default: 0,
-    },
+
   },
   { timestamps: true, collection: "users" }
-);
+)
 
 // Attach Mongoose Helpers
 MongooseHelper.preSaveHashPassword(UserSchema);

@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 import { TRole } from "../../types/express";
 
-export const Role = ["User", "Admin"] as const;
+export const Role = ["User", "Provider", "Admin"] as const;
 
 // export interface IAuthProvider extends Document {
 //   sub: string;
@@ -19,6 +19,8 @@ export interface ISignup extends ISignIn {
   firstName: string;
   lastName: string;
   userName: string;
+  brandName: string
+  brandLogo: string
   countryCode: string;
   mobile: string;
   confirmedPassword: string;

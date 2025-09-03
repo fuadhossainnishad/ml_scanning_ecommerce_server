@@ -2,8 +2,9 @@ import { Document } from "mongoose";
 import { ISignup } from "../auth/auth.interface";
 
 export interface IAdmin
-  extends Omit<ISignup, "firstName" | "lastName" | "countryCode" | "mobile"> {
+  extends Omit<ISignup, "firstName" | "lastName" | "userName"> {
   profile: string;
+  brandName: string;
   contactNumber: string;
   comparePassword(plainPassword: string): Promise<boolean>;
   passwordUpdatedAt: Date;
