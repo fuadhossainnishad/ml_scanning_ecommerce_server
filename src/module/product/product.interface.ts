@@ -81,6 +81,7 @@ export interface IMeasurement {
 }
 
 export interface IProduct {
+  brandName: string
   productName: string
   shortDescription: string
   productImages: string[]

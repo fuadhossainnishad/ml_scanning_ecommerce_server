@@ -6,8 +6,9 @@ import {
 } from "../subscription/subscription.interface";
 
 export interface IUser extends ISignup, IAdmin {
-  uic: string;
-  rank: string;
+  about: string;
+  hometown: string;
+  favouriteStyles: string[]
   stripe_customer_id: string;
   sub_status: SubStatus;
   subscriptionPlan: ISubscriptionPlan;
