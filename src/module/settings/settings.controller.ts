@@ -48,9 +48,10 @@ const upsertSettings: RequestHandlerWithFiles = catchAsync(async (req, res) => {
 });
 
 const getSettings: RequestHandler = catchAsync(async (req, res) => {
+  console.log(req.query)
   const result = await GenericService.findAllResources<ISettings>(
     Settings,
-    req.query,
+    req.query!,
     ["type", "content"]
   );
 

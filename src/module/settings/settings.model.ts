@@ -1,12 +1,17 @@
 import { model, Model, Schema } from "mongoose";
 import MongooseHelper from "../../utility/mongoose.helpers";
-import { ISettings } from "./settings.interface";
+import { ISettings, SettingType } from "./settings.interface";
+
+
 
 const SettingsSchema: Schema = new Schema<ISettings>(
   {
     type: {
       type: String,
+      enum: Object.values(SettingType),
+      message: "Invalid type. Allowed types are 'terms_and_conditions' and 'privacy_policy'.",
       required: true,
+      unique: true
     },
     content: {
       type: String,
@@ -25,7 +30,7 @@ const SettingsSchema: Schema = new Schema<ISettings>(
 MongooseHelper.findExistence(SettingsSchema);
 MongooseHelper.applyToJSONTransform(SettingsSchema);
 
-SettingsSchema.index({ type: "text", content: "text" });
+SettingsSchema.index({ type: 1 }, { unique: true });
 
 const Settings: Model<ISettings> = model<ISettings>("Setting", SettingsSchema);
 

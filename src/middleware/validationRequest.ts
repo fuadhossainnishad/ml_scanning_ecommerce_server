@@ -60,13 +60,17 @@ const validationRequest = (schema: AnyZodObject) => {
       });
       next();
     } catch (error) {
-      next(
-        new AppError(
-          httpStatus.BAD_REQUEST,
-          'Zod Validation error',
-          error as any,
-        ),
-      );
+      if (error instanceof AppError) {
+        next(error);
+      } else {
+        next(
+          new AppError(
+            httpStatus.BAD_REQUEST,
+            'Zod Validation error',
+            error instanceof Error ? error.message : 'Unknown error',
+          ),
+        );
+      }
     }
   });
 };
