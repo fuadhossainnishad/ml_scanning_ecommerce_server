@@ -5,8 +5,6 @@ export interface IUser extends ISignup, IAdmin {
   hometown: string;
   favouriteStyles: string[]
   stripe_customer_id: string;
-  last_login: Date;
-  failed_attempts?: number;
 }
 
 export type TUserUpdate = Partial<IUser> & {

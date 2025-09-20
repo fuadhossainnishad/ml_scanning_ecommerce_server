@@ -8,9 +8,20 @@ export const UserSchema: Schema = new Schema<IUser>(
   {
     stripe_customer_id: {
       type: String,
-      required: true,
       default: "",
     },
+    hometown: {
+      type: String,
+      default: '',
+    },
+    about: {
+      type: String,
+      default: '',
+    },
+    favouriteStyles: [{
+      type: String,
+      default: '',
+    }]
   },
   { timestamps: true, collection: "users" }
 )

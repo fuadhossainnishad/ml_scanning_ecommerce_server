@@ -9,42 +9,45 @@ import GenericService from "../../utility/genericService.helpers";
 import User from "../user/user.model";
 import { IUser } from "../user/user.interface";
 import { IJwtPayload } from "./auth.interface";
+import { IAdmin } from '../admin/admin.interface';
+import { IBrand } from "../brand/brand.interface";
+import Admin from "../admin/admin.model";
+import Brand from "../brand/brand.model";
 
-const signUp: RequestHandler = catchAsync(async (req, res) => {
-  const { role } = req.body.data;
 
-  // if (!email || !password) {
-  //   throw new AppError(httpStatus.BAD_REQUEST, "Missing required fields", "");
-  // }
-  const result = await GenericService.insertResources<IUser>(
-    User,
-    req.body.data
-  );
+export const signUp: RequestHandler = catchAsync(async (req, res) => {
+  const { role,email } = req.body.data;
+  console.log(email, role);
+  
 
-  console.log("register: ", result);
-  if (!result.user || !result.user._id) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not found");
+  let result
+
+  switch (role) {
+    case "Admin":
+      result = await GenericService.insertResources<IAdmin>(Admin, req.body.data);
+      break;
+    case "Provider":
+      result = await GenericService.insertResources<IBrand>(Brand, req.body.data);
+      break;
+    case "User":
+      result = await GenericService.insertResources<IUser>(User, req.body.data);
+      break;
+    default:
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid role");
   }
+    console.log("Signup result:", result!);  // Debugging result
 
-  // await NotificationServices.sendNoification({
-  //   ownerId: result.signUp._id!,
-  //   key: "notification",
-  //   data: {
-  //     id: result.signUp?._id.toString(),
-  //     message: `New user register`,
-  //   },
-  //   receiverId: [result.signUp._id],
-  //   notifyAdmin: true,
-  // });
+  if (!result || !result._id) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Signup failed");
+  }
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: `${role} is registered successfully`,
+    message: `${role} registered successfully`,
     data: result,
   });
 });
-
 
 const login: RequestHandler = catchAsync(async (req, res) => {
 

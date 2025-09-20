@@ -1,76 +1,38 @@
 import { model, Schema } from "mongoose";
 import { IOtp, ISignup, Role } from './auth.interface';
 import MongooseHelper from "../../utility/mongoose.helpers";
+import { IUser } from "../user/user.interface";
 
-const isRequired = function (this: ISignup): boolean {
-  return this.role === 'Provider'
-}
 
-export const SignupSchema: Schema = new Schema({
-  email: {
-    type: String,
-    required: [true, "Email is required"],
-    unique: [true, "Email already exist"],
-  },
-  password: {
-    type: String,
-    required: true,
-  },
-  passwordUpdatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-  confirmedPassword: {
-    type: String,
-    required: true,
-  },
+export const SignupSchema: Schema = new Schema<IUser>({
+  email: { type: String, required: [true, "Email is required"], unique: true },
+  password: { type: String, required: true },
+  confirmedPassword: { type: String, required: true },
   role: {
-    type: String,
-    enum: Role,
-    required: [true, "Role is required"],
+    type: String, enum: Role, required: [true, "Role is required"], default: 'User'
   },
-  firstName: {
-    type: String,
-    required: !isRequired,
-  },
-  lastName: {
-    type: String,
-    required: !isRequired,
-  },
-  userName: {
-    type: String,
-    default: ""
-  },
-  profile: {
-    type: String,
-    required: !isRequired,
-    default: '',
-  },
-  brandName: {
-    type: String,
-    required: isRequired,
-  },
+  firstName: { type: String, required: function (this: ISignup) { return this.role !== 'User'; } },
+  lastName: { type: String, required: function (this: ISignup) { return this.role !== 'User'; } },
+  userName: { type: String, default: "" },
+  profile: { type: String, required: function (this: ISignup) { return this.role !== 'User'; }, default: "" },
+  brandName: { type: String, required: function (this: ISignup) { return this.role === 'Provider'; } },
   brandLogo: {
     type: String,
-    required: isRequired,
+    default: "",
+    validate: {
+      validator: function (value: string) {
+        if (this.role === "Provider" && !value) return false;
+        return true;
+      },
+      message: "brandLogo is required for Provider"
+    }
   },
-  mobile: {
-    type: String,
-    required: true,
-  },
-  countryCode: {
-    type: String,
-    required: true,
-  },
-  last_login: {
-    type: Date,
-    default: Date.now,
-  },
-  failed_attempts: {
-    type: Number,
-    default: 0,
-  },
-})
+  mobile: { type: String, required: true },
+  countryCode: { type: String, required: true },
+  passwordUpdatedAt: { type: Date, default: Date.now },
+  last_login: { type: Date, default: Date.now },
+  failed_attempts: { type: Number, default: 0 },
+});
 
 const OtpSchema = new Schema<IOtp>(
   {

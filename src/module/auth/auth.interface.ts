@@ -19,12 +19,17 @@ export interface ISignup extends ISignIn {
   firstName: string;
   lastName: string;
   userName: string;
+  profile: string
   brandName: string
   brandLogo: string
   countryCode: string;
   mobile: string;
   confirmedPassword: string;
   role: TRole;
+  passwordUpdatedAt?: Date
+  last_login?: Date
+  failed_attempts?: number
+
   // agreeTcp: boolean;
 }
 

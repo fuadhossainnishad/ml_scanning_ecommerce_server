@@ -11,8 +11,8 @@ const router = express.Router();
 router.post(
   "/signup",
   // validationRequest(AuthValidationSchema.userSignInValidation),
-  upload.fields([{ name: "profile", maxCount: 1 }, { name: "brandLogo", maxCount: 1 }]),
-  fileHandle("profile"),
+  upload.fields([{ name: "brandLogo", maxCount: 1 }]),
+  // fileHandle("profile"),
   fileHandle("brandLogo"),
   AuthController.signUp
 );

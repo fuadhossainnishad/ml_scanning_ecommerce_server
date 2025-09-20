@@ -3,11 +3,7 @@ import { ISignup } from "../auth/auth.interface";
 
 export interface IBrand
   extends Omit<ISignup, "firstName" | "lastName" | "userName"> {
-  profile: string;
-  brandName: string;
-  contactNumber: string;
   comparePassword(plainPassword: string): Promise<boolean>;
-  passwordUpdatedAt: Date;
   isDeleted: boolean;
 }
 export interface IRecentActivity extends Document {
