@@ -8,7 +8,9 @@ export const UserSchema: Schema = new Schema<IUser>(
   {
     stripe_customer_id: {
       type: String,
-      default: "",
+      required: function (this: IUser) {
+        return this.role === 'User'
+      },
     },
     hometown: {
       type: String,

@@ -15,6 +15,10 @@ const AdminSchema: Schema = new Schema<IAdmin>(
 ).add(SignupSchema);
 
 // MongooseHelper.excludeFields(AdminSchema, ["firstName", "lastName"], "Admin");
+MongooseHelper.preSaveHashPassword(AdminSchema);
+MongooseHelper.comparePasswordIntoDb(AdminSchema);
+MongooseHelper.preSaveConjugate<IAdmin>(AdminSchema);
+MongooseHelper.findExistence<IAdmin>(AdminSchema);
 MongooseHelper.applyToJSONTransform(AdminSchema);
 
 const Admin: Model<IAdmin> = model<IAdmin>("Admin", AdminSchema);

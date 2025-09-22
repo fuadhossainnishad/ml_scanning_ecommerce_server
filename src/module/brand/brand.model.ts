@@ -4,11 +4,27 @@ import { IBrand } from "./brand.interface";
 import Admin from "../admin/admin.model";
 
 
-const BrandSchema: Schema = new Schema<IBrand>({
-  isDeleted: { type: Boolean, default: false },
-}, { timestamps: true });
+const BrandSchema: Schema = new Schema<IBrand>(
+  {
+    brandName: { type: String, required: function (this: IBrand) { return this.role === 'Brand'; } },
+    brandLogo: {
+      type: String,
+      required: function (this: IBrand) { return this.role === 'Brand'; },
+      validate: {
+        validator: function (value: string) {
+          if (this.role === "Brand" && !value) return false;
+          return true;
+        },
+        message: "brandLogo is required for Brand"
+      }
+    },
+  }
+  , { timestamps: true, collection: "brands" }
+);
 
 // MongooseHelper.excludeFields(AdminSchema, ["firstName", "lastName"], "Admin");
+MongooseHelper.preSaveConjugate<IBrand>(BrandSchema);
+MongooseHelper.findExistence<IBrand>(BrandSchema);
 MongooseHelper.applyToJSONTransform(BrandSchema);
 
 const Brand: Model<IBrand> = Admin.discriminator<IBrand>("Brand", BrandSchema);

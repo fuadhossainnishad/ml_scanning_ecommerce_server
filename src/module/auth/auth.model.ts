@@ -11,22 +11,10 @@ export const SignupSchema: Schema = new Schema<IUser>({
   role: {
     type: String, enum: Role, required: [true, "Role is required"], default: 'User'
   },
-  firstName: { type: String, required: function (this: ISignup) { return this.role !== 'User'; } },
-  lastName: { type: String, required: function (this: ISignup) { return this.role !== 'User'; } },
+  firstName: { type: String, required: function (this: ISignup) { return this.role === 'User'; } },
+  lastName: { type: String, required: function (this: ISignup) { return this.role === 'User'; } },
   userName: { type: String, default: "" },
-  profile: { type: String, required: function (this: ISignup) { return this.role !== 'User'; }, default: "" },
-  brandName: { type: String, required: function (this: ISignup) { return this.role === 'Provider'; } },
-  brandLogo: {
-    type: String,
-    default: "",
-    validate: {
-      validator: function (value: string) {
-        if (this.role === "Provider" && !value) return false;
-        return true;
-      },
-      message: "brandLogo is required for Provider"
-    }
-  },
+  profile: { type: String, default: "" },
   mobile: { type: String, required: true },
   countryCode: { type: String, required: true },
   passwordUpdatedAt: { type: Date, default: Date.now },

@@ -4,7 +4,6 @@ import { idConverter } from "./idConverter";
 import AppError from "../app/error/AppError";
 import httpStatus from "http-status";
 import { TRole } from "../types/express";
-import { IUser } from "../module/user/user.interface";
 
 interface ISavePassword {
   password?: string;
@@ -23,14 +22,11 @@ const preSaveHashPassword = (schema: Schema) => {
   });
 };
 
-const preSaveConjugate = <T extends IUser>(schema: Schema) => {
+const preSaveConjugate = <T>(schema: Schema) => {
   schema.pre<T>("save", async function (next) {
-    if (this.role === "User") {
+    if (this.role !== "Brand") {
       if (this.firstName && this.lastName) {
         this.userName = this.firstName + " " + this.lastName;
-      }
-      if (this.countryCode && this.mobile) {
-        this.contactNumber = `${this.countryCode}${this.mobile}`;
       }
       next();
     }

@@ -6,27 +6,32 @@ import config from "../../app/config";
 import sendResponse from "../../utility/sendResponse";
 import AppError from "../../app/error/AppError";
 import GenericService from "../../utility/genericService.helpers";
-import User from "../user/user.model";
+import User from '../user/user.model';
 import { IUser } from "../user/user.interface";
 import { IJwtPayload } from "./auth.interface";
-import { IAdmin } from '../admin/admin.interface';
+import { IAdmin, TAdminUpdate } from '../admin/admin.interface';
 import { IBrand } from "../brand/brand.interface";
-import Admin from "../admin/admin.model";
+import Admin from '../admin/admin.model';
 import Brand from "../brand/brand.model";
+import StripeUtils from "../../utility/stripe.utils";
+import { idConverter } from "../../utility/idConverter";
 
 
 export const signUp: RequestHandler = catchAsync(async (req, res) => {
-  const { role,email } = req.body.data;
+  const { role, email } = req.body.data;
+  const key = role.toLowerCase()
   console.log(email, role);
-  
+
+  if (role === 'User') {
+    req.body.data.stripe_customer_id = await StripeUtils.CreateCustomerId(email)
+  }
 
   let result
-
   switch (role) {
     case "Admin":
       result = await GenericService.insertResources<IAdmin>(Admin, req.body.data);
       break;
-    case "Provider":
+    case "Brand":
       result = await GenericService.insertResources<IBrand>(Brand, req.body.data);
       break;
     case "User":
@@ -35,9 +40,9 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
     default:
       throw new AppError(httpStatus.BAD_REQUEST, "Invalid role");
   }
-    console.log("Signup result:", result!);  // Debugging result
+  console.log("Signup result:", result[key]!);
 
-  if (!result || !result._id) {
+  if (!result[key] || !result[key]._id) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Signup failed");
   }
 
@@ -45,7 +50,7 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.CREATED,
     message: `${role} registered successfully`,
-    data: result,
+    data: result[key],
   });
 });
 
@@ -68,8 +73,6 @@ const login: RequestHandler = catchAsync(async (req, res) => {
     id: user._id.toString(),
     role: user.role,
     email: user.email,
-    sub_status: user.sub_status,
-    subType: user.subscriptionPlan.subType,
   };
 
   const token = await AuthServices.GenerateToken(jwtPayload);
@@ -78,23 +81,13 @@ const login: RequestHandler = catchAsync(async (req, res) => {
     httpOnly: true,
   });
 
-  const getRedirectUrl = (subStatus: string, trialUsed: boolean) => {
-    if (subStatus === "inactive" && !trialUsed) {
-      return { message: "Please complete your trial subscription", redirect: "/trial" };
-    }
-    if (subStatus === "inactive" && trialUsed) {
-      return { message: "Please complete your trial subscription", redirect: "/paid" };
-    }
-    return { message: "Successfully logged in", redirect: "/home" };
-  };
 
-  const redirectData = getRedirectUrl(user.sub_status, user.subscriptionPlan.trialUsed);
 
   return sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: redirectData.message,
-    data: { token, redirectData },
+    message: `${user.role} successfully login`,
+    data: token,
   });
 
 
@@ -114,17 +107,25 @@ const requestForgotPassword: RequestHandler = catchAsync(async (req, res) => {
 
 const verifyOtp: RequestHandler = catchAsync(async (req, res) => {
   const result = await AuthServices.verifyOtpService(req.body.data);
+  const user = result
+  const jwtPayload: IJwtPayload = {
+    id: user.id!,
+    role: user.role!,
+    email: user.email!,
+  };
 
+  const token = await AuthServices.GenerateToken(jwtPayload);
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
     message: "Otp verified successfully",
-    data: result,
+    data: token.accessToken,
   });
 });
 
 const resetPassword: RequestHandler = catchAsync(async (req, res) => {
-  const result = await AuthServices.resetPasswordService(req.body.data);
+  const { id, newPassword } = req.body.data
+  const result = await AuthServices.resetPasswordService({ userId: id, newPassword: newPassword });
   // await NotificationServices.sendNoification({
   //   ownerId: result.user?._id,
   //   key: "notification",

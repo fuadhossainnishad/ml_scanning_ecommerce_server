@@ -27,6 +27,7 @@ const createSubscription = async (payload: ICreateSubscription) => {
 }
 
 const StripeUtils = {
-    CreateCustomerId
+    CreateCustomerId,
+    createSubscription
 }
 export default StripeUtils;

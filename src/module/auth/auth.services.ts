@@ -4,11 +4,11 @@ import { sendMail } from "../../app/mailer/sendMail";
 import { emailRegex } from "../../constants/regex.constants";
 import { idConverter } from "../../utility/idConverter";
 import { IJwtPayload, ISignIn } from "./auth.interface";
-import User from "../user/user.model";
 import { TResetPassword, TUpdatePassword, TVerifyOtp } from "./auth.constant";
 import Otp from "./auth.model";
 import config from "../../app/config";
 import { jwtHelpers } from "../../app/jwtHelpers/jwtHelpers";
+import Admin from "../admin/admin.model";
 
 const loginService = async (payload: ISignIn) => {
 
@@ -18,7 +18,7 @@ const loginService = async (payload: ISignIn) => {
 
   console.log(payload);
 
-  const QueryModel = User;
+  const QueryModel = Admin;
   const query: Record<string, unknown> = { email: payload.email };
 
   // if (payload.sub) {
@@ -34,7 +34,7 @@ const loginService = async (payload: ISignIn) => {
   });
 
   if (!isExist) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found", "");
+    throw new AppError(httpStatus.NOT_FOUND, `${payload.email} not found`, "");
   }
 
   const isPasswordValid = await isExist.comparePassword(payload.password);
@@ -55,7 +55,7 @@ const requestForgotPasswordService = async (email: string) => {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid email format", "");
   }
 
-  const QueryModel = User;
+  const QueryModel = Admin;
 
   const user = await QueryModel.findOne({ email });
   if (!user) {
@@ -111,7 +111,7 @@ const verifyOtpService = async (payload: TVerifyOtp) => {
   if (!otpRecord) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid or expired OTP", "");
   }
-  const QueryModel = User;
+  const QueryModel = Admin;
   if (!QueryModel) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid role provided", "");
   }
@@ -120,6 +120,9 @@ const verifyOtpService = async (payload: TVerifyOtp) => {
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, "Email not registered", "");
   }
+
+  
+
   await Otp.deleteOne({ _id: otpRecord._id });
 
   return { user: user };
@@ -130,7 +133,7 @@ const resetPasswordService = async (payload: TResetPassword) => {
   console.log(userId);
 
   const userIdObject = await idConverter(userId!);
-  const QueryModel = User;
+  const QueryModel = Admin;
   const user = await QueryModel.findOne(
     { _id: userIdObject, isDeleted: { $ne: true } },
     { password: 1, email: 1 }
@@ -158,7 +161,7 @@ const updatePasswordService = async (payload: TUpdatePassword) => {
   console.log(userId);
 
   const userIdObject = await idConverter(userId!);
-  const QueryModel = User;
+  const QueryModel = Admin;
   const user = await QueryModel.findOne(
     { _id: userIdObject, isDeleted: { $ne: true } },
     { password: 1, email: 1 }

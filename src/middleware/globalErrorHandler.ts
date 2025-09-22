@@ -8,7 +8,7 @@ import handelDuplicateError from '../app/error/handelDuplicateError';
 import AppError from '../app/error/AppError';
 import config from '../app/config';
 
- 
+
 const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
   // default error
   let statusCode = 500;

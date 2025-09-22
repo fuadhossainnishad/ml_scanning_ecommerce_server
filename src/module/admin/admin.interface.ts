@@ -15,5 +15,5 @@ export interface IReport extends Document {
 }
 
 export type TAdminUpdate = Partial<IAdmin> & {
-  adminId: string;
+  id: string;
 };

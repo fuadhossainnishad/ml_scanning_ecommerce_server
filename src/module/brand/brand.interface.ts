@@ -1,10 +1,11 @@
 import { Document } from "mongoose";
 import { ISignup } from "../auth/auth.interface";
+import { IAdmin } from "../admin/admin.interface";
 
 export interface IBrand
-  extends Omit<ISignup, "firstName" | "lastName" | "userName"> {
-  comparePassword(plainPassword: string): Promise<boolean>;
-  isDeleted: boolean;
+  extends IAdmin, ISignup {
+  brandName: string
+  brandLogo: string
 }
 export interface IRecentActivity extends Document {
   title: string;
