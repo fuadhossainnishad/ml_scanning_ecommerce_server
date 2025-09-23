@@ -121,7 +121,7 @@ const verifyOtpService = async (payload: TVerifyOtp) => {
     throw new AppError(httpStatus.NOT_FOUND, "Email not registered", "");
   }
 
-  
+
 
   await Otp.deleteOne({ _id: otpRecord._id });
 

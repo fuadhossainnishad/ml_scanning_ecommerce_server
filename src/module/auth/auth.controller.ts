@@ -9,12 +9,11 @@ import GenericService from "../../utility/genericService.helpers";
 import User from '../user/user.model';
 import { IUser } from "../user/user.interface";
 import { IJwtPayload } from "./auth.interface";
-import { IAdmin, TAdminUpdate } from '../admin/admin.interface';
+import { IAdmin } from '../admin/admin.interface';
 import { IBrand } from "../brand/brand.interface";
 import Admin from '../admin/admin.model';
 import Brand from "../brand/brand.model";
 import StripeUtils from "../../utility/stripe.utils";
-import { idConverter } from "../../utility/idConverter";
 
 
 export const signUp: RequestHandler = catchAsync(async (req, res) => {
@@ -107,11 +106,11 @@ const requestForgotPassword: RequestHandler = catchAsync(async (req, res) => {
 
 const verifyOtp: RequestHandler = catchAsync(async (req, res) => {
   const result = await AuthServices.verifyOtpService(req.body.data);
-  const user = result
+
   const jwtPayload: IJwtPayload = {
-    id: user.id!,
-    role: user.role!,
-    email: user.email!,
+    id: result.user._id.toString()!,
+    role: result.user.role!,
+    email: result.user.email!,
   };
 
   const token = await AuthServices.GenerateToken(jwtPayload);
@@ -119,13 +118,14 @@ const verifyOtp: RequestHandler = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: "Otp verified successfully",
-    data: token.accessToken,
+    data: token,
   });
 });
 
 const resetPassword: RequestHandler = catchAsync(async (req, res) => {
-  const { id, newPassword } = req.body.data
-  const result = await AuthServices.resetPasswordService({ userId: id, newPassword: newPassword });
+  const { _id } = req.user
+  const { newPassword } = req.body.data
+  const result = await AuthServices.resetPasswordService({ userId: _id, newPassword: newPassword });
   // await NotificationServices.sendNoification({
   //   ownerId: result.user?._id,
   //   key: "notification",
@@ -136,11 +136,18 @@ const resetPassword: RequestHandler = catchAsync(async (req, res) => {
   //   receiverId: [result.user?._id],
   //   notifyAdmin: true,
   // });
+  const jwtPayload: IJwtPayload = {
+    id: result.user._id.toString()!,
+    role: result.user.role!,
+    email: result.user.email!,
+  };
+
+  const token = await AuthServices.GenerateToken(jwtPayload);
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
     message: "Password reset successfully",
-    data: result,
+    data: token,
   });
 });
 const updatePassword: RequestHandler = catchAsync(async (req, res) => {

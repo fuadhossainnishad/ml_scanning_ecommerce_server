@@ -6,6 +6,7 @@ import auth from "../../middleware/auth";
 import { upload } from "../../middleware/multer/multer";
 import { fileHandle } from "../../middleware/fileHandle";
 
+
 const router = express.Router();
 
 router.post(
@@ -31,20 +32,21 @@ router.post(
 
 router.post(
   "/verify_otp",
-  validationRequest(AuthValidationSchema.verifyOtpdValidation),
+  // validationRequest(AuthValidationSchema.verifyOtpdValidation),
   AuthController.verifyOtp
 );
 
 router.put(
   "/reset_password",
-  validationRequest(AuthValidationSchema.resetPasswordValidation),
+  auth("User", "Brand", "Admin"),
+  // validationRequest(AuthValidationSchema.resetPasswordValidation),
   AuthController.resetPassword
 );
 
 router.patch(
   "/update_password",
-  auth("Admin", "User"),
-  validationRequest(AuthValidationSchema.updatePasswordValidation),
+  auth("User", "Brand", "Admin"),
+  // validationRequest(AuthValidationSchema.updatePasswordValidation),
   AuthController.updatePassword
 );
 
