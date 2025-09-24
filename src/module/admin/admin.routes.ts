@@ -1,19 +1,25 @@
 import express from "express";
 import AdminController from "./admin.controller";
+import auth from "../../middleware/auth";
+import { upload } from "../../middleware/multer/multer";
+import { fileHandle } from "../../middleware/fileHandle";
 
 const router = express.Router();
 
-router.get(
-  "/get_admin",
-  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  AdminController.getAdmin
-);
-
-router.patch(
-  "/update_admin",
-  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  AdminController.updateAdmin
-);
+router
+  .route('/')
+  .get(
+    auth('Admin'),
+    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+    AdminController. 
+  )
+  .patch(
+    auth('Admin'),
+    upload.fields([{ name: "profile", maxCount: 1 }]),
+    fileHandle("profile"),
+    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+    AdminController.updateAdmin
+  );
 
 const AdminRouter = router;
 export default AdminRouter;

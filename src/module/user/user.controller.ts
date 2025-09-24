@@ -81,17 +81,18 @@ const deleteUser: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated", "");
   }
   const admin = req.user?._id;
-  console.log("userId: ", admin.toString());
+  console.log("adminId: ", admin.toString());
 
   if (!admin) {
     throw new AppError(httpStatus.BAD_REQUEST, "Admin ID is required", "");
   }
-  req.body.data.admin = admin;
-  const userId = await idConverter(req.body.data.userId);
-  const result = await GenericService.deleteResources<IUser>(User, userId);
+  const userId = await idConverter(req.params.id);
+  console.log(req.params.id);
+
+  const result = await GenericService.updateResources<IUser>(User, userId, req.body.data);
 
   await NotificationServices.sendNoification({
-    ownerId: await idConverter(req.body.data.userId),
+    ownerId: await idConverter(admin),
     key: "notification",
     data: {
       id: userId,

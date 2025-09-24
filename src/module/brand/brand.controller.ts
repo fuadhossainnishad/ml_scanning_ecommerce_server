@@ -9,8 +9,9 @@ import Admin from "./brand.model";
 import { IBrand } from "./brand.interface";
 import AdminServices from "./brand.services";
 import NotificationServices from "../notification/notification.service";
+import Brand from "./brand.model";
 
-const getAdmin: RequestHandler = catchAsync(async (req, res) => {
+const getBrand: RequestHandler = catchAsync(async (req, res) => {
   const { adminId } = req.body.data;
   console.log("adminId: ", adminId.toString());
 
@@ -18,7 +19,7 @@ const getAdmin: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(httpStatus.BAD_REQUEST, "Admin ID is required", "");
   }
   const result = await GenericService.findResources<IBrand>(
-    Admin,
+    Brand,
     await idConverter(adminId)
   );
 
@@ -63,7 +64,7 @@ const updateAdmin: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const AdminController = {
-  getAdmin,
+  getBrand,
   updateAdmin,
 };
 

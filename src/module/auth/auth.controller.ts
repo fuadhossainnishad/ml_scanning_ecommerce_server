@@ -118,7 +118,7 @@ const verifyOtp: RequestHandler = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: "Otp verified successfully",
-    data: token,
+    data: {accessToken:token.accessToken},
   });
 });
 

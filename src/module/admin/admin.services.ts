@@ -5,8 +5,8 @@ import { TAdminUpdate } from "./admin.interface";
 import Admin from "./admin.model";
 
 const updateAdminService = async (payload: TAdminUpdate) => {
-  const { adminId, ...updateData } = payload;
-  const adminIdObject = await idConverter(adminId);
+  const { id, ...updateData } = payload;
+  const adminIdObject = await idConverter(id);
 
   if (!adminIdObject) {
     throw new AppError(
