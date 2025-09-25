@@ -8,6 +8,8 @@ export const fileHandle = (fieldName: string): RequestHandler =>
     if (typeof req.body.data === "string") {
       try {
         req.body.data = JSON.parse(req.body.data);
+        console.log(req.body.data);
+
       } catch (error) {
         let errorMessage = "Unknown JSON parse error";
         if (error instanceof Error) {

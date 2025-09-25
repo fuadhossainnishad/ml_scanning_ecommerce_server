@@ -11,7 +11,7 @@ router
   .get(
     auth('Admin'),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-    AdminController. 
+    AdminController.getAdmin
   )
   .patch(
     auth('Admin'),

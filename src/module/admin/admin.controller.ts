@@ -7,19 +7,17 @@ import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
 import Admin from "./admin.model";
 import { IAdmin } from "./admin.interface";
-import AdminServices from "./admin.services";
-import NotificationServices from "../notification/notification.service";
 
 const getAdmin: RequestHandler = catchAsync(async (req, res) => {
-  const { adminId } = req.body.data;
-  console.log("adminId: ", adminId.toString());
+  const { _id } = req.user;
+  console.log("adminId: ", _id);
 
-  if (!adminId) {
+  if (!_id) {
     throw new AppError(httpStatus.BAD_REQUEST, "Admin ID is required", "");
   }
   const result = await GenericService.findResources<IAdmin>(
     Admin,
-    await idConverter(adminId)
+    await idConverter(_id)
   );
 
   sendResponse(res, {
@@ -31,33 +29,29 @@ const getAdmin: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const updateAdmin: RequestHandler = catchAsync(async (req, res) => {
-  if (!req.user) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated", "");
+  if (!req.user || req.user.role !== 'Admin') {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Only admin can access", "");
   }
+
   const adminId = req.user?._id;
   console.log("userId: ", adminId.toString());
 
   if (!adminId) {
     throw new AppError(httpStatus.BAD_REQUEST, "adminId is required", "");
   }
-  req.body.data.adminId = adminId;
-  const result = await AdminServices.updateAdminService(req.body.data);
 
-  await NotificationServices.sendNoification({
-    ownerId: req.user?._id,
-    key: "notification",
-    data: {
-      id: result.Admin._id.toString(),
-      message: `Admin profile updated`,
-    },
-    receiverId: [req.user?._id],
-    notifyAdmin: true,
-  });
+  // Ensure profile is handled properly (if no file is uploaded, set it as null or empty)
+  if (!req.body.data.profile || req.body.data.profile.length === 0) {
+    console.log("No profile file uploaded");
+    req.body.data.profile = '';  // Set profile as empty string or null
+  }
+
+  const result = await GenericService.updateResources<IAdmin>(Admin, adminId, req.body.data);
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully updated admin profile",
+    message: "Successfully updated admin profile",
     data: result,
   });
 });

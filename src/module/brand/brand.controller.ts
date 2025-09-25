@@ -5,7 +5,6 @@ import AppError from "../../app/error/AppError";
 import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
-import Admin from "./brand.model";
 import { IBrand } from "./brand.interface";
 import AdminServices from "./brand.services";
 import NotificationServices from "../notification/notification.service";

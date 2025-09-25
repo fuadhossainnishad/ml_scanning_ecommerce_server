@@ -29,9 +29,7 @@ export const UserSchema: Schema = new Schema<IUser>(
 )
 
 // Attach Mongoose Helpers
-MongooseHelper.preSaveHashPassword(UserSchema);
 MongooseHelper.preSaveConjugate<IUser>(UserSchema);
-MongooseHelper.comparePasswordIntoDb(UserSchema);
 MongooseHelper.findExistence<IUser>(UserSchema);
 MongooseHelper.applyToJSONTransform(UserSchema);
 
