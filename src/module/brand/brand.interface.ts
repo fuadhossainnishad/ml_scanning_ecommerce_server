@@ -7,6 +7,7 @@ export interface IBrand
   brandName: string
   brandLogo: string
 }
+
 export interface IRecentActivity extends Document {
   title: string;
 }
