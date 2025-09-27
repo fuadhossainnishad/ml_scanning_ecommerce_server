@@ -9,6 +9,8 @@ const BrandSchema: Schema = new Schema<IBrand>(
     brandName: { type: String, required: function (this: IBrand) { return this.role === 'Brand'; } },
     brandLogo: {
       type: String,
+      // required: false,
+      // default: "",
       required: function (this: IBrand) { return this.role === 'Brand'; },
       validate: {
         validator: function (value: string) {

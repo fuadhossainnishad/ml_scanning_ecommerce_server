@@ -10,7 +10,7 @@
     <div id="message"></div>
     <script src="/socket.io/socket.io.js"></script>
     <script>
-      const socket = io("http://localhost:8000");
+      const socket = io("https://a5d808ddf6d9.ngrok-free.app");
       const message = document.getElementById("message");
 
       socket.on("connect", () => {

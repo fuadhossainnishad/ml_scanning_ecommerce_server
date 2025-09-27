@@ -12,14 +12,23 @@ router
     auth('Admin'),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     AdminController.getAdmin
-  )
-  .patch(
-    auth('Admin'),
-    upload.fields([{ name: "profile", maxCount: 1 }]),
-    fileHandle("profile"),
-    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-    AdminController.updateAdmin
   );
+
+router.patch(
+  '/',
+  auth('Admin'),
+  // upload.fields([{ name: "profile", maxCount: 1 }]),
+  // fileHandle("profile"),
+  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+  AdminController.updateAdmin
+);
+
+router.patch("/profile",
+  auth('Admin'),
+  upload.fields([{ name: "profile", maxCount: 1 }]),
+  fileHandle("profile"),
+  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+  AdminController.updateAdmin)
 
 const AdminRouter = router;
 export default AdminRouter;

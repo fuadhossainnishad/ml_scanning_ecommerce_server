@@ -33,6 +33,14 @@ const updateAdmin: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(httpStatus.UNAUTHORIZED, "Only admin can access", "");
   }
 
+  if (!req.body || !req.body.data) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Data is required", "");
+  }
+
+
+  console.log(req.body.data!);
+
+
   const adminId = req.user?._id;
   console.log("userId: ", adminId.toString());
 
@@ -46,7 +54,7 @@ const updateAdmin: RequestHandler = catchAsync(async (req, res) => {
     req.body.data.profile = '';  // Set profile as empty string or null
   }
 
-  const result = await GenericService.updateResources<IAdmin>(Admin, adminId, req.body.data);
+  const result = await GenericService.updateResources<IAdmin>(Admin, adminId, req.body.data!);
 
   sendResponse(res, {
     success: true,

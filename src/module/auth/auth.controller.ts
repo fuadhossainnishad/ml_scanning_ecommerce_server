@@ -14,6 +14,7 @@ import { IBrand } from "../brand/brand.interface";
 import Admin from '../admin/admin.model';
 import Brand from "../brand/brand.model";
 import StripeUtils from "../../utility/stripe.utils";
+import NotificationServices from "../notification/notification.service";
 
 
 export const signUp: RequestHandler = catchAsync(async (req, res) => {
@@ -45,6 +46,20 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(httpStatus.UNAUTHORIZED, "Signup failed");
   }
 
+
+  await NotificationServices.sendNoification({
+    ownerId: result[key]._id,
+    key: "notification",
+    data: {
+      id: result[key]._id.toString(),
+      message: `${key} login`,
+    },
+    receiverId: [result[key]._id],
+    notifyAdmin: true,
+  });
+
+  // const saveNotf = await NotificationServices()
+
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
@@ -55,16 +70,7 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
 
 const login: RequestHandler = catchAsync(async (req, res) => {
 
-  // await NotificationServices.sendNoification({
-  //   ownerId: user._id,
-  //   key: "notification",
-  //   data: {
-  //     id: result.user?._id.toString(),
-  //     message: `User/vendor login`,
-  //   },
-  //   receiverId: [user._id],
-  //   notifyAdmin: true,
-  // });
+
   const user = await AuthServices.loginService(req.body.data);
   console.log(req.body.data!);
 
@@ -80,7 +86,16 @@ const login: RequestHandler = catchAsync(async (req, res) => {
     httpOnly: true,
   });
 
-
+  await NotificationServices.sendNoification({
+    ownerId: user._id,
+    key: "notification",
+    data: {
+      id: user?._id.toString(),
+      message: `${user.role} login`,
+    },
+    receiverId: [user._id],
+    notifyAdmin: true,
+  });
 
   return sendResponse(res, {
     success: true,
@@ -93,7 +108,7 @@ const login: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const requestForgotPassword: RequestHandler = catchAsync(async (req, res) => {
-  const { email } = req.body.data || {};
+  const { email } = req.body.data
   const result = await AuthServices.requestForgotPasswordService(email);
 
   sendResponse(res, {
@@ -118,13 +133,13 @@ const verifyOtp: RequestHandler = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: "Otp verified successfully",
-    data: {accessToken:token.accessToken},
+    data: { accessToken: token.accessToken },
   });
 });
 
 const resetPassword: RequestHandler = catchAsync(async (req, res) => {
   const { _id } = req.user
-  const { newPassword } = req.body.data
+  const { newPassword } = req.body.data || {}
   const result = await AuthServices.resetPasswordService({ userId: _id, newPassword: newPassword });
   // await NotificationServices.sendNoification({
   //   ownerId: result.user?._id,

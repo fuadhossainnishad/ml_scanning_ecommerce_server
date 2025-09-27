@@ -4,8 +4,8 @@ import { IAdmin } from "../admin/admin.interface";
 
 export interface IBrand
   extends IAdmin, ISignup {
-  brandName: string
-  brandLogo: string
+  brandName: string;
+  brandLogo: string | null | undefined;
 }
 
 export interface IRecentActivity extends Document {

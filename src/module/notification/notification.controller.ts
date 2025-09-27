@@ -27,6 +27,12 @@ const getNotification: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const getAllNotification: RequestHandler = catchAsync(async (req, res) => {
+  // if (!req.user._id) {
+  //   throw new AppError(404, "Id not found")
+  // }
+
+
+
   const result = await GenericService.findAllResources<INotification>(
     Notification,
     req.query,
