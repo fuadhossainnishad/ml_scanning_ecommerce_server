@@ -22,7 +22,7 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
   const key = role.toLowerCase()
   console.log(email, role);
 
-  if (role === 'User') {
+  if (role !== 'Admin') {
     req.body.data.stripe_customer_id = await StripeUtils.CreateCustomerId(email)
   }
 

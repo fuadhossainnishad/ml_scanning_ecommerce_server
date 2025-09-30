@@ -18,6 +18,12 @@ export const SignupSchema: Schema = new Schema<IUser>({
   mobile: { type: String, required: true },
   countryCode: { type: String, required: true },
   passwordUpdatedAt: { type: Date, default: Date.now },
+  stripe_customer_id: {
+    type: String,
+    required: function (this: ISignup) {
+      return this.role !== 'Admin'
+    },
+  },
   last_login: { type: Date, default: Date.now },
   failed_attempts: { type: Number, default: 0 },
 });

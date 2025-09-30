@@ -6,12 +6,6 @@ import Admin from "../admin/admin.model";
 
 export const UserSchema: Schema = new Schema<IUser>(
   {
-    stripe_customer_id: {
-      type: String,
-      required: function (this: IUser) {
-        return this.role === 'User'
-      },
-    },
     hometown: {
       type: String,
       default: '',

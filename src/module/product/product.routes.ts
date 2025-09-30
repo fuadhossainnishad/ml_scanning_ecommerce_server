@@ -1,22 +1,20 @@
 import express from "express";
 import auth from "../../middleware/auth";
-import SubscriptionController from "./product.controller";
+import ProductController from "./product.controller";
+import { upload } from "../../middleware/multer/multer";
+import { fileHandle } from "../../middleware/fileHandle";
 
 const router = express.Router();
 
 router
   .route("/")
-  .post(SubscriptionController.createSubscription)
-  .get(SubscriptionController.getAllSubscription)
-  .delete(auth("Admin"), SubscriptionController.deleteSubscription);
+  .post(auth("Brand"),
+    upload.fields([{ name: "productImages", maxCount: 10 }]),
+    fileHandle("productImages"),
+    ProductController.createProduct)
+  .get(ProductController.createProduct)
+  .delete(auth("Admin"), ProductController.createProduct);
 
-router.patch("/:id", SubscriptionController.updateSubscription);
-router.post(
-  "/webhook",
-  express.raw({ type: "applicaton/json" }),
-  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  SubscriptionController.Webhook
-);
-
-const SubscriptionRouter = router;
-export default SubscriptionRouter;
+router.patch("/:id", ProductController.createProduct);
+const ProductRouter = router;
+export default ProductRouter;

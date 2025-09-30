@@ -6,40 +6,41 @@ import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
 import NotificationServices from "../notification/notification.service";
-import { ISubscription, PaidStatus, SubStatus, SubType } from "./product.interface";
-import User from "../user/user.model";
-import StripeUtils from "../../utility/stripe.utils";
-import { IUser } from "../user/user.interface";
-import SubscriptionServices from "./product.services";
-import StripeServices, { handleStripeWebhook } from "../stripe/stripe.service";
-import { Types } from "mongoose";
-import Subscription from "./product.model";
-import Payment from "../payment/payment.model";
-import { IPayment } from "../payment/payment.interface";
+import StripeServices from "../stripe/stripe.service";
+import { IProduct } from "./product.interface";
+import Product from "./product.model";
 
-const createSubscription: RequestHandler = catchAsync(async (req, res) => {
-  // if (req.user?.role !== "Admin") {
-  //   throw new AppError(
-  //     httpStatus.BAD_REQUEST,
-  //     "Author ID is required",
-  //     ""
-  //   );
-  // }
-  const { name, description, price, interval } = req.body.data;
-  if (!name || !description || price || interval) {
+const createProduct: RequestHandler = catchAsync(async (req, res) => {
+  if (req.user?.role !== "Brand") {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Name, Description, price & interval are required",
+      "Brand ID is required",
       ""
     );
   }
-  const stripeProductId = await StripeServices.createStripeProductId(name, description)
+
+  const { productName, shortDescription, price } = req.body.data;
+  if (!productName || !shortDescription || price) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Name, Description, price are required",
+      ""
+    );
+  }
+
+  const stripeProductId = await StripeServices.createStripeProductId(productName, shortDescription)
   const stripePriceId = await StripeServices.createStripePriceId({ ...req.body.data, stripeProductId })
 
-  req.body.data = { ...req.body.data, stripePriceId }
+  req.body.data = {
+    ...req.body.data,
+    brandId: req.user?._id,
+    stripe_product_id: stripeProductId,
+    stripe_price_id: stripePriceId
+  }
 
-  const result = await GenericService.insertResources<ISubscription>(
-    Subscription,
+
+  const result = await GenericService.insertResources<IProduct>(
+    Product,
     req.body?.data
   );
 
@@ -58,50 +59,50 @@ const createSubscription: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully added new subscription",
+    message: "successfully added new Product",
     data: result,
   });
 });
 
-const getSubscription: RequestHandler = catchAsync(async (req, res) => {
-  const { subscriptionId } = req.body.data;
-  console.log("SubscriptionId: ", subscriptionId);
+const getProduct: RequestHandler = catchAsync(async (req, res) => {
+  const { ProductId } = req.body.data;
+  console.log("ProductId: ", ProductId);
 
-  if (!subscriptionId) {
+  if (!ProductId) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Subscription ID is required",
+      "Product ID is required",
       ""
     );
   }
-  const result = await GenericService.findResources<ISubscription>(
-    Subscription,
-    await idConverter(subscriptionId)
+  const result = await GenericService.findResources<IProduct>(
+    Product,
+    await idConverter(ProductId)
   );
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully retrieve all Subscription data",
+    message: "successfully retrieve all Product data",
     data: result,
   });
 });
 
-const getAllSubscription: RequestHandler = catchAsync(async (req, res) => {
-  const result = await GenericService.findAllResources<ISubscription>(
-    Subscription,
+const getAllProduct: RequestHandler = catchAsync(async (req, res) => {
+  const result = await GenericService.findAllResources<IProduct>(
+    Product,
     req.query,
-    ["title", "price"]
+    []
   );
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully retrieve Subscription data",
+    message: "successfully retrieve Product data",
     data: result,
   });
 });
 
-const updateSubscription: RequestHandler = catchAsync(async (req, res) => {
+const updateProduct: RequestHandler = catchAsync(async (req, res) => {
   // if (!req.user) {
   //   throw new AppError(httpStatus.UNAUTHORIZED, "Admin not authenticated", "");
   // }
@@ -114,8 +115,8 @@ const updateSubscription: RequestHandler = catchAsync(async (req, res) => {
   //       ? rawId[0]
   //       : undefined;
 
-  const result = await GenericService.updateResources<ISubscription>(
-    Subscription,
+  const result = await GenericService.updateResources<IProduct>(
+    Product,
     await idConverter(id),
     req.body.data
   );
@@ -124,8 +125,8 @@ const updateSubscription: RequestHandler = catchAsync(async (req, res) => {
   //   ownerId: req.user?._id,
   //   key: "notification",
   //   data: {
-  //     id: result.subscription?._id.toString(),
-  //     message: `An Subscription updated`,
+  //     id: result.Product?._id.toString(),
+  //     message: `An Product updated`,
   //   },
   //   receiverId: [req.user?._id],
   // });
@@ -133,12 +134,12 @@ const updateSubscription: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully updated Subscription ",
+    message: "successfully updated Product ",
     data: result,
   });
 });
 
-const deleteSubscription: RequestHandler = catchAsync(async (req, res) => {
+const deleteProduct: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Admin not authenticated", "");
   }
@@ -146,21 +147,21 @@ const deleteSubscription: RequestHandler = catchAsync(async (req, res) => {
   if (req.user?.role !== "Admin") {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      "Only admin can do update subscription",
+      "Only admin can do update Product",
       ""
     );
   }
-  const { subscriptionId } = req.body.data;
-  const result = await GenericService.deleteResources<ISubscription>(
-    Subscription,
-    await idConverter(subscriptionId)
+  const { ProductId } = req.body.data;
+  const result = await GenericService.deleteResources<IProduct>(
+    Product,
+    await idConverter(ProductId)
   );
 
   await NotificationServices.sendNoification({
     ownerId: req.user?._id,
     key: "notification",
     data: {
-      message: `An Subscription deleted`,
+      message: `An Product deleted`,
     },
     receiverId: [req.user?._id],
   });
@@ -168,169 +169,169 @@ const deleteSubscription: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully deleted subscription",
+    message: "successfully deleted Product",
     data: result,
   });
 });
 
-const TrialSubscription: RequestHandler = catchAsync(async (req, res) => {
-  const { role, email, id, stripe_customer_id } = req.user;
-  if (role !== "User" || !email || !id) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Only valid user can have trial subscription",
-      ""
-    );
-  }
-  if (stripe_customer_id == "") {
-    const customer_id = await StripeUtils.CreateCustomerId(email);
-    req.user = await GenericService.updateResources<IUser>(User, id, { stripe_customer_id: customer_id })
-  }
-  const { subscriptionPlan } = req.user
-  if (subscriptionPlan.subType !== "none" && !subscriptionPlan.trialUsed) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "You have already used your trial subscription",
-      ""
-    );
-  }
+// const TrialProduct: RequestHandler = catchAsync(async (req, res) => {
+//   const { role, email, id, stripe_customer_id } = req.user;
+//   if (role !== "User" || !email || !id) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       "Only valid user can have trial Product",
+//       ""
+//     );
+//   }
+//   if (stripe_customer_id == "") {
+//     const customer_id = await StripeUtils.CreateCustomerId(email);
+//     req.user = await GenericService.updateResources<IUser>(User, id, { stripe_customer_id: customer_id })
+//   }
+//   const { ProductPlan } = req.user
+//   if (ProductPlan.subType !== "none" && !ProductPlan.trialUsed) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       "You have already used your trial Product",
+//       ""
+//     );
+//   }
 
-  subscriptionPlan.trial.start = new Date()
-  subscriptionPlan.trial.end = new Date(subscriptionPlan.trial.start.getTime() + 30 * 24 * 60 * 60 * 1000)
+//   ProductPlan.trial.start = new Date()
+//   ProductPlan.trial.end = new Date(ProductPlan.trial.start.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-  const result = await SubscriptionServices.trialService<IUser & { _id: Types.ObjectId }>(req.user)
-  subscriptionPlan.trial.stripe_subscription_id = result
-  subscriptionPlan.subType = SubType.TRIAL
-  subscriptionPlan.trial.active = true
-  subscriptionPlan.isActive = true
-  req.user.sub_status = SubStatus.ACTIVE
+//   const result = await ProductServices.trialService<IUser & { _id: Types.ObjectId }>(req.user)
+//   ProductPlan.trial.stripe_Product_id = result
+//   ProductPlan.subType = SubType.TRIAL
+//   ProductPlan.trial.active = true
+//   ProductPlan.isActive = true
+//   req.user.sub_status = SubStatus.ACTIVE
 
-  const updateUser = await GenericService.updateResources<IUser>(User, id, req.user)
+//   const updateUser = await GenericService.updateResources<IUser>(User, id, req.user)
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.CREATED,
-    message: "successfully get trial subscription",
-    data: updateUser,
-  });
-})
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.CREATED,
+//     message: "successfully get trial Product",
+//     data: updateUser,
+//   });
+// })
 
-const PaidSubscription: RequestHandler = catchAsync(async (req, res) => {
-  const { role, email, id, stripe_customer_id } = req.user;
-  const { subscriptionId } = req.body.data
+// const PaidProduct: RequestHandler = catchAsync(async (req, res) => {
+//   const { role, email, id, stripe_customer_id } = req.user;
+//   const { ProductId } = req.body.data
 
-  if (role !== "User" || !email || !id) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Only valid user can have paid subscription",
-    );
-  }
+//   if (role !== "User" || !email || !id) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       "Only valid user can have paid Product",
+//     );
+//   }
 
-  if (!subscriptionId) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "select a subscription",
-    );
-  }
+//   if (!ProductId) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       "select a Product",
+//     );
+//   }
 
-  if (stripe_customer_id == "") {
-    const customer_id = await StripeUtils.CreateCustomerId(email);
-    req.user = await GenericService.updateResources<IUser>(User, id, { stripe_customer_id: customer_id })
-  }
+//   if (stripe_customer_id == "") {
+//     const customer_id = await StripeUtils.CreateCustomerId(email);
+//     req.user = await GenericService.updateResources<IUser>(User, id, { stripe_customer_id: customer_id })
+//   }
 
-  // const { subscriptionPlan } = req.user
-  // if (subscriptionPlan.subType === "paid" && subscriptionPlan.paid.status === "active") {
-  //   throw new AppError(
-  //     httpStatus.BAD_REQUEST,
-  //     "You have already used your paid subscription",
-  //     ""
-  //   );
-  // }
+//   // const { ProductPlan } = req.user
+//   // if (ProductPlan.subType === "paid" && ProductPlan.paid.status === "active") {
+//   //   throw new AppError(
+//   //     httpStatus.BAD_REQUEST,
+//   //     "You have already used your paid Product",
+//   //     ""
+//   //   );
+//   // }
 
-  const subscription = await GenericService.findResources<ISubscription>(Subscription, await idConverter(subscriptionId))
+//   const Product = await GenericService.findResources<IProduct>(Product, await idConverter(ProductId))
 
-  const paymentIntent = await StripeServices.createPaymentIntentService({
-    userId: req.user._id.toString(),
-    stripe_customer_id: req.user.stripe_customer_id,
-    subscriptionId: subscriptionId,
-    amount: subscription[0].price,
-    currency: 'usd'
-  })
+//   const paymentIntent = await StripeServices.createPaymentIntentService({
+//     userId: req.user._id.toString(),
+//     stripe_customer_id: req.user.stripe_customer_id,
+//     ProductId: ProductId,
+//     amount: Product[0].price,
+//     currency: 'usd'
+//   })
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.CONTINUE,
-    message: "please complete your payment to activate paid subscription",
-    data: paymentIntent,
-  });
-})
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.CONTINUE,
+//     message: "please complete your payment to activate paid Product",
+//     data: paymentIntent,
+//   });
+// })
 
-const Webhook: RequestHandler = catchAsync(async (req, res) => {
-  const { _id, stripe_customer_id, subscriptionPlan } = req.user
-  const sig = req.headers["stripe-signature"] as string;
-  const rawbody = req.body.data
+// const Webhook: RequestHandler = catchAsync(async (req, res) => {
+//   const { _id, stripe_customer_id, ProductPlan } = req.user
+//   const sig = req.headers["stripe-signature"] as string;
+//   const rawbody = req.body.data
 
-  const { paymentIntent } = await handleStripeWebhook({
-    sig,
-    rawbody,
-  });
+//   const { paymentIntent } = await handleStripeWebhook({
+//     sig,
+//     rawbody,
+//   });
 
-  const { orderid, subscriptionId } = paymentIntent.metadata
+//   const { orderid, ProductId } = paymentIntent.metadata
 
-  const paymentPayload: IPayment = {
-    orderId: await idConverter(orderid),
-    userId: _id,
-    stripeCustomerId: stripe_customer_id,
-    paymentIntentId: paymentIntent.id,
-    subscriptionId: await idConverter(subscriptionId),
-    amount: paymentIntent.amount_received / 100,
-    currency: paymentIntent.currency,
-    payment_method: paymentIntent.payment_method_types[0],
-    payStatus: true,
-    isDeleted: false
-  }
+//   const paymentPayload: IPayment = {
+//     orderId: await idConverter(orderid),
+//     userId: _id,
+//     stripeCustomerId: stripe_customer_id,
+//     paymentIntentId: paymentIntent.id,
+//     ProductId: await idConverter(ProductId),
+//     amount: paymentIntent.amount_received / 100,
+//     currency: paymentIntent.currency,
+//     payment_method: paymentIntent.payment_method_types[0],
+//     payStatus: true,
+//     isDeleted: false
+//   }
 
-  const insertPayment = await GenericService.insertResources<IPayment>(Payment, paymentPayload)
+//   const insertPayment = await GenericService.insertResources<IPayment>(Payment, paymentPayload)
 
-  subscriptionPlan.paid.subscription_id = await idConverter(subscriptionId)
-  subscriptionPlan.paid.status = PaidStatus.ACTIVE
-  subscriptionPlan.paid.start = new Date()
-  subscriptionPlan.paid.end = new Date(subscriptionPlan.paid.start.getTime() + subscriptionPlan.paid.length * 24 * 60 * 60 * 1000)
-  subscriptionPlan.subType = SubType.PAID
-  subscriptionPlan.isActive = true
-  req.user.sub_status = SubStatus.ACTIVE
+//   ProductPlan.paid.Product_id = await idConverter(ProductId)
+//   ProductPlan.paid.status = PaidStatus.ACTIVE
+//   ProductPlan.paid.start = new Date()
+//   ProductPlan.paid.end = new Date(ProductPlan.paid.start.getTime() + ProductPlan.paid.length * 24 * 60 * 60 * 1000)
+//   ProductPlan.subType = SubType.PAID
+//   ProductPlan.isActive = true
+//   req.user.sub_status = SubStatus.ACTIVE
 
-  await GenericService.updateResources<IUser>(User, _id, req.user)
+//   await GenericService.updateResources<IUser>(User, _id, req.user)
 
-  // const updateOrderStatus = await Subscription.findByIdAndUpdate(
-  //   await idConverter(orderId),
-  //   { status: "accept" },
-  //   { new: true }
-  // );
-  // if (!updateOrderStatus) {
-  //   throw new AppError(
-  //     httpStatus.NOT_FOUND,
-  //     "Order status not updated to accept due to some issue"
-  //   );
-  // }
+//   // const updateOrderStatus = await Product.findByIdAndUpdate(
+//   //   await idConverter(orderId),
+//   //   { status: "accept" },
+//   //   { new: true }
+//   // );
+//   // if (!updateOrderStatus) {
+//   //   throw new AppError(
+//   //     httpStatus.NOT_FOUND,
+//   //     "Order status not updated to accept due to some issue"
+//   //   );
+//   // }
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.CREATED,
-    message: "success fully paid your subscription",
-    data: insertPayment,
-  });
-});
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.CREATED,
+//     message: "success fully paid your Product",
+//     data: insertPayment,
+//   });
+// });
 
-const SubscriptionController = {
-  createSubscription,
-  getSubscription,
-  getAllSubscription,
-  updateSubscription,
-  deleteSubscription,
-  TrialSubscription,
-  PaidSubscription,
-  Webhook
+const ProductController = {
+  createProduct,
+  getProduct,
+  getAllProduct,
+  updateProduct,
+  deleteProduct,
+  // TrialProduct,
+  // PaidProduct,
+  // Webhook
 };
 
-export default SubscriptionController;
+export default ProductController;

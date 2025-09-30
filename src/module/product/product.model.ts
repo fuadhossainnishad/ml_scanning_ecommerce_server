@@ -1,137 +1,58 @@
-import { Subscription } from '../appointment/appointment.interface';
 import { model, Model, Schema } from "mongoose";
-import { IBase, IPaid, ISubscription, ISubscriptionPlan, ITrial, PaidStatus, SubType, IntervalType } from './product.interface';
 import MongooseHelper from "../../utility/mongoose.helpers";
+import { IMeasurement, IProduct, TCategory, TSize } from "./product.interface";
 
 
-
-const BaseSchemaOptions = new Schema<IBase>(
-  {
-    stripe_subscription_id: {
-      type: String,
-      required: true,
-    },
-    length: {
-      type: Number,
-      default: 30,
-    },
-    start: {
-      type: Date,
-      required: true,
-    },
-    end: {
-      type: Date,
-      required: true,
-    },
+const MeasurementSchema = new Schema<IMeasurement>({
+  size: {
+    type: String,
+    enum: Object.values(TSize),
+    required: true,
   },
-  { _id: false }
-);
+  chest: { type: Number, required: true },
+  waist: { type: Number, required: true },
+  hips: { type: Number, required: true },
+  heightRange: { type: Number, required: true },
+});
 
-const TrialSchema = new Schema<ITrial>(
-  {
-    active: {
-      type: Boolean,
-      default: false,
-    },
+const ProductSchema = new Schema<IProduct>({
+  brandId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Brand',
+    required: true,
   },
-  { _id: false }
-).add(BaseSchemaOptions)
-
-const PaidSchema = new Schema<IPaid>(
-  {
-
-    status: {
-      type: String,
-      enum: Object.values(PaidStatus),
-      required: true,
-    },
-    subscription_id: {
-      type: Schema.Types.ObjectId,
-      ref: "Subscription",
-      required: true,
-    },
-
+  stripe_product_id: { type: String, required: true },
+  productName: { type: String, required: true },
+  shortDescription: { type: String, required: true },
+  productImages: {
+    type: [String],
+    required: true,
   },
-  { _id: false }
-).add(BaseSchemaOptions)
-
-const SubscriptionPlanSchema: Schema = new Schema<ISubscriptionPlan>(
-  {
-    trial: {
-      type: TrialSchema,
-      required: true,
-    },
-    trialUsed: {
-      type: Boolean,
-      default: false,
-    },
-    paid: {
-      type: PaidSchema,
-      required: function (this): boolean {
-        return !this.trial.active && !this.trialUsed;
-      },
-    },
-    subType: {
-      type: String,
-      enum: Object.values(SubType),
-      default: "none",
-      required: true,
-    },
-    isActive: {
-      type: Boolean,
-      default: function (this): boolean {
-        return this.trial.active || this.paid.status === PaidStatus.ACTIVE;
-      },
-      required: true,
-    },
+  colors: {
+    type: [String],
+    required: true,
   },
-  { _id: false }
-)
-
-const SubscriptionSchema: Schema = new Schema<ISubscription>(
-  {
-    subscriptionName: {
-      type: String,
-      required: true,
-    },
-    shortDescription: [
-      {
-        type: String,
-        required: true,
-      },
-    ],
-    price: {
-      type: Number,
-      required: true,
-    },
-    interval: {
-      type: String,
-      enum: Object.values(IntervalType),
-      required: true,
-    },
-    stripeProductId: {
-      type: String,
-      required: true,
-    },
-    stripePriceId: {
-      type: String,
-      required: true,
-    },
+  category: {
+    type: String,
+    enum: Object.values(TCategory),
+    required: true,
   },
-  { timestamps: true }
-);
+  measurement: {
+    type: [MeasurementSchema],
+    required: true,
+  },
+  totalQuantity: { type: Number, required: true },
+  price: { type: Number, required: true },
+  stripe_price_id: { type: String, required: true },
+  discountPrice: { type: Number, required: true },
+  saleTag: { type: Boolean, default: false },
+  shippingNote: { type: String, required: true },
+});
 
-MongooseHelper.findExistence<ISubscription>(SubscriptionSchema);
-MongooseHelper.applyToJSONTransform(SubscriptionSchema);
+MongooseHelper.applyToJSONTransform(ProductSchema);
+MongooseHelper.findExistence<IProduct>(ProductSchema);
 
-const Subscription: Model<ISubscription> = model<ISubscription>(
-  "Subscription",
-  SubscriptionSchema
-);
-export default Subscription;
+const Product: Model<IProduct> = model<IProduct>('Product', ProductSchema);
 
-export const SubscriptionSupportSchema = {
-  SubscriptionPlanSchema,
-  TrialSchema,
-  PaidSchema
-}
+export default Product;
+
