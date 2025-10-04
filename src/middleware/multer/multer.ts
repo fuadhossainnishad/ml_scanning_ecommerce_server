@@ -17,6 +17,8 @@ const fileFilter = function (
     "image/webp",
     "image/svg+xml",
   ];
+  console.log("multer:", file, req);
+
   if (allowTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {

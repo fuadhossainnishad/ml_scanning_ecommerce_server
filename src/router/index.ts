@@ -6,8 +6,6 @@ import AdminRouter from "../module/admin/admin.routes";
 import NotificationRouter from "../module/notification/notification.routes";
 import SettingsRouter from "../module/settings/settings.routes";
 import SubscriptionRouter from "../module/subscription/subscription.routes";
-import TrackRouter from "../module/track/track.routes";
-import AppointmentRouter from "../module/appointment/appointment.routes";
 import ProductRouter from "../module/product/product.routes";
 
 const router = express.Router();
@@ -18,9 +16,7 @@ const moduleRoutes = [
   { path: "/user", route: UserRouter },
   { path: "/admin", route: AdminRouter },
   { path: "/product", route: ProductRouter },
-  { path: "/appointment", route: AppointmentRouter },
   { path: "/settings", route: SettingsRouter },
-  { path: "/track", route: TrackRouter },
   { path: "/subscription", route: SubscriptionRouter },
   { path: "/notification", route: NotificationRouter },
 ];

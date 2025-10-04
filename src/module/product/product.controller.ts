@@ -19,8 +19,11 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
     );
   }
 
-  const { productName, shortDescription, price } = req.body.data;
-  if (!productName || !shortDescription || price) {
+  console.log("products:", req.user, req.body!);
+
+
+  const { productName, shortDescription, price } = req.body.data
+  if (!productName || !shortDescription || !price) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "Name, Description, price are required",
@@ -33,7 +36,7 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
 
   req.body.data = {
     ...req.body.data,
-    brandId: req.user?._id,
+    brandId: req.user._id!,
     stripe_product_id: stripeProductId,
     stripe_price_id: stripePriceId
   }
