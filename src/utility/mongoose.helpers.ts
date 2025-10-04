@@ -69,7 +69,7 @@ const findExistence = <T>(schema: Schema) => {
   schema.statics.isExist = async function (
     id: string | mongoose.Types.ObjectId
   ): Promise<T> {
-    const validId = await idConverter(id);
+    const validId = await idConverter(id!);
     const result = await this.findById<T>(validId);
     if (!result) {
       throw new AppError(httpStatus.NOT_FOUND, "Existence not found", "");
