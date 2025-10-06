@@ -48,10 +48,9 @@ const updateAdmin: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(httpStatus.BAD_REQUEST, "adminId is required", "");
   }
 
-  // Ensure profile is handled properly (if no file is uploaded, set it as null or empty)
   if (!req.body.data.profile || req.body.data.profile.length === 0) {
     console.log("No profile file uploaded");
-    req.body.data.profile = '';  // Set profile as empty string or null
+    req.body.data.profile = '';
   }
 
   const result = await GenericService.updateResources<IAdmin>(Admin, adminId, req.body.data!);

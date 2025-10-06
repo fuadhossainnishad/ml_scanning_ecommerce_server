@@ -8,7 +8,7 @@ export const fileHandle = (fieldName: string): RequestHandler =>
     if (typeof req.body.data === "string") {
       try {
         req.body.data = JSON.parse(req.body.data);
-        console.log(req.body.data);
+        console.log("parsed data:", req.body.data);
 
       } catch (error) {
         let errorMessage = "Unknown JSON parse error";
@@ -18,6 +18,7 @@ export const fileHandle = (fieldName: string): RequestHandler =>
         throw new AppError(400, "Invalid JSON in data field", errorMessage);
       }
     }
+    console.log('Parsed data:', req.body.data);
     const files = (req.files as Record<string, Express.Multer.File[]>)[
       fieldName
     ];

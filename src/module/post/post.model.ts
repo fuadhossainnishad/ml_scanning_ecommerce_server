@@ -12,14 +12,12 @@ const CommentsSchema: Schema = new Schema<IComments>({
     type: String,
     required: true
   }
-})
+},
+  { timestamps: true }
+)
 
 const PostSchema: Schema = new Schema<IPost>({
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: "User",
-    required: true
-  },
+
   brandId: {
     type: Schema.Types.ObjectId,
     ref: "Brand",
@@ -29,13 +27,18 @@ const PostSchema: Schema = new Schema<IPost>({
     type: String,
     required: true
   },
+  brandLogo: {
+    type: String,
+    required: true
+  },
   attachment: {
     type: String,
     required: true
   },
   caption: {
     type: String,
-    required: true
+    required: false,
+    default: ""
   },
   tags: [{
     type: String,
@@ -43,21 +46,24 @@ const PostSchema: Schema = new Schema<IPost>({
   }],
   likes: [{
     type: Schema.Types.ObjectId,
-    ref: "User"
+    ref: "User",
+    default: []
   }],
   totalLikes: {
     type: Number,
-    required: true
+    default: 0
   },
   comments: [{
     type: CommentsSchema,
-    required: true
+    default: []
   }],
   totalComments: {
     type: Number,
-    required: true
+    default: 0
   }
-})
+},
+  { timestamps: true }
+)
 
 MongooseHelper.findExistence<IPost>(PostSchema);
 MongooseHelper.applyToJSONTransform(PostSchema);

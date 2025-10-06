@@ -1,22 +1,43 @@
 import express from "express";
 import auth from "../../middleware/auth";
-import SubscriptionController from "./post.controller";
+import PostController from "./post.controller";
+import { upload } from "../../middleware/multer/multer";
+import { fileHandle } from "../../middleware/fileHandle";
 
 const router = express.Router();
 
 router
   .route("/")
-  .post(SubscriptionController.createSubscription)
-  .get(SubscriptionController.getAllSubscription)
-  .delete(auth("Admin"), SubscriptionController.deleteSubscription);
+  .post(
+    auth("Brand"),
+    upload.fields([{ name: "attachement", maxCount: 1 }]),
+    fileHandle("attachement"),
+    PostController.createPost
+  )
+  .get(
+    auth("User", "Brand"),
+    PostController.getAllPost
+  )
 
-router.patch("/:id", SubscriptionController.updateSubscription);
-router.post(
-  "/webhook",
-  express.raw({ type: "applicaton/json" }),
-  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  SubscriptionController.Webhook
-);
+router
+  .route("/:id")
+  .patch(
+    auth("Brand"),
+    upload.fields([{ name: "attachement", maxCount: 1 }]),
+    fileHandle("attachement"),
+    PostController.deletePost
+  )
+  .delete(
+    auth("Brand"),
+    PostController.deletePost
+  )
 
-const SubscriptionRouter = router;
-export default SubscriptionRouter;
+// router.post(
+//   "/webhook",
+//   express.raw({ type: "applicaton/json" }),
+//   //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+//   PostController.Webhook
+// );
+
+const PostRouter = router;
+export default PostRouter;

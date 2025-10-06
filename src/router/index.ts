@@ -7,6 +7,9 @@ import NotificationRouter from "../module/notification/notification.routes";
 import SettingsRouter from "../module/settings/settings.routes";
 import SubscriptionRouter from "../module/subscription/subscription.routes";
 import ProductRouter from "../module/product/product.routes";
+import PostRouter from "../module/post/post.routes";
+import StatsRouter from "../module/stats/stats.routes";
+import BrandRouter from "../module/brand/brand.routes";
 
 const router = express.Router();
 
@@ -14,9 +17,12 @@ const moduleRoutes = [
   { path: "/health", route: HealthRouter },
   { path: "/auth", route: AuthRouter },
   { path: "/user", route: UserRouter },
+  { path: '/brand', route: BrandRouter },
   { path: "/admin", route: AdminRouter },
   { path: "/product", route: ProductRouter },
+  { path: "/post", route: PostRouter },
   { path: "/settings", route: SettingsRouter },
+  { path: "/stats", route: StatsRouter },
   { path: "/subscription", route: SubscriptionRouter },
   { path: "/notification", route: NotificationRouter },
 ];

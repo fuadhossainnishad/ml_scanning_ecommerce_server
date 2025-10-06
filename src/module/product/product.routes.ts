@@ -6,20 +6,30 @@ import { fileHandle } from "../../middleware/fileHandle";
 
 const router = express.Router();
 
-router.post(
-  '/',
-  auth("Brand"),
-  upload.fields([{ name: "productImages", maxCount: 10 }]),
-  fileHandle("productImages"),
-  ProductController.createProduct
-)
-
 router
   .route("/")
-  .get(auth("Brand"),ProductController.getAllProduct)
-  .delete(auth("Admin"), ProductController.createProduct);
+  .post(
+    auth("Brand"),
+    upload.fields([{ name: "productImages", maxCount: 10 }]),
+    fileHandle("productImages"),
+    ProductController.createProduct
+  )
+  .get(
+    auth("User", "Brand", "Admin"),
+    ProductController.getAllProduct
+  )
+  .delete(
+    auth("Admin"),
+    ProductController.createProduct
+  );
 
-router.patch("/:id", ProductController.createProduct);
+router.patch(
+  "/:id",
+  // auth("Brand"),
+  upload.fields([{ name: "productImages", maxCount: 10 }]),
+  fileHandle("productImages"),
+  ProductController.updateProduct
+);
 
 const ProductRouter = router;
 export default ProductRouter;

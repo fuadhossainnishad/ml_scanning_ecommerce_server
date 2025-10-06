@@ -1,19 +1,29 @@
 import express from "express";
-import AdminController from "./brand.controller";
+import BrandController from "./brand.controller";
 
 const router = express.Router();
 
-router.get(
-  "/get_admin",
-  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  AdminController.getAdmin
-);
+router
+  .route('/')
+  .get(
+    // auth('User','Brand'),
+    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+    BrandController.getBrand);
 
-router.patch(
-  "/update_admin",
-  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  AdminController.updateAdmin
-);
+router
+  .route('/:id')
+  .patch(
+    // auth('User','Brand'),
+    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+    BrandController.updateBrand
+  )
+  .delete(
+    // auth('User','Brand'),
+    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+    BrandController.updateBrand
+  );
 
-const AdminRouter = router;
-export default AdminRouter;
+
+
+const BrandRouter = router;
+export default BrandRouter;

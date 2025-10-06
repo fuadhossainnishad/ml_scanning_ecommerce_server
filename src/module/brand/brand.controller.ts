@@ -4,33 +4,31 @@ import catchAsync from "../../utility/catchAsync";
 import AppError from "../../app/error/AppError";
 import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
-import { idConverter } from "../../utility/idConverter";
 import { IBrand } from "./brand.interface";
 import AdminServices from "./brand.services";
 import NotificationServices from "../notification/notification.service";
 import Brand from "./brand.model";
 
 const getBrand: RequestHandler = catchAsync(async (req, res) => {
-  const { adminId } = req.body.data;
-  console.log("adminId: ", adminId.toString());
 
-  if (!adminId) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Admin ID is required", "");
-  }
-  const result = await GenericService.findResources<IBrand>(
+  // if (!req.user) {
+  //   throw new AppError(httpStatus.BAD_REQUEST, "Authenticate User/Brand is required", "");
+  // }
+  const result = await GenericService.findAllResources<IBrand>(
     Brand,
-    await idConverter(adminId)
+    req.query,
+    []
   );
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully retrieve admin data",
+    message: "successfully retrieve brand data",
     data: result,
   });
 });
 
-const updateAdmin: RequestHandler = catchAsync(async (req, res) => {
+const updateBrand: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated", "");
   }
@@ -62,9 +60,9 @@ const updateAdmin: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
-const AdminController = {
+const BrandController = {
   getBrand,
-  updateAdmin,
+  updateBrand,
 };
 
-export default AdminController;
+export default BrandController;

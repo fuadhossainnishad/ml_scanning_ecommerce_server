@@ -107,7 +107,7 @@ const getAllProduct: RequestHandler = catchAsync(async (req, res) => {
 
 const updateProduct: RequestHandler = catchAsync(async (req, res) => {
   // if (!req.user) {
-  //   throw new AppError(httpStatus.UNAUTHORIZED, "Admin not authenticated", "");
+  //   throw new AppError(httpStatus.UNAUTHORIZED, "Brand is not authenticated", "");
   // }
   const id = req?.params.id;
 
