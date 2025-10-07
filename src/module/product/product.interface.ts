@@ -40,6 +40,7 @@ export interface IProduct {
   measurement: IMeasurement[]
   totalQuantity: number
   price: number
+  inStock:boolean
   stripe_price_id: string
   discountPrice: number
   saleTag: boolean

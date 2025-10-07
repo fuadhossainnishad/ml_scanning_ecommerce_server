@@ -43,6 +43,11 @@ const ProductSchema = new Schema<IProduct>({
   },
   totalQuantity: { type: Number, required: true },
   price: { type: Number, required: true },
+  inStock: {
+    type: Boolean, default: function (this: IProduct) {
+      return this.totalQuantity > 0
+    }
+  },
   stripe_price_id: { type: String, required: true },
   discountPrice: { type: Number, required: true },
   saleTag: { type: Boolean, default: false },
