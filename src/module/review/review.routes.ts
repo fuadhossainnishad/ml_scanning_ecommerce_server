@@ -1,19 +1,29 @@
 import express from "express";
-import AdminController from "./review.controller";
+import ReviewController from "./review.controller";
+import auth from "../../middleware/auth";
 
 const router = express.Router();
 
-router.get(
-  "/get_admin",
-  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  AdminController.getAdmin
-);
+router
+  .route("/:id")
+  .post(
+    auth('User'),
+    ReviewController.createReview
+  )
 
-router.patch(
-  "/update_admin",
-  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  AdminController.updateAdmin
-);
+router
+  .route("/")
+  .get(
+    auth('User', 'Brand'),
+    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+    ReviewController.getReview
+  );
+
+// router.patch(
+//   "/update_admin",
+//   //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+//   ReviewController.getReview
+// );
 
 const AdminRouter = router;
 export default AdminRouter;

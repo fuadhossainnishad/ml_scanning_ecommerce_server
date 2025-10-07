@@ -20,6 +20,10 @@ const BrandSchema: Schema = new Schema<IBrand>(
         message: "brandLogo is required for Brand"
       }
     },
+    theme: {
+      type: String,
+      default: ""
+    }
   }
   , { timestamps: true, collection: "brands" }
 );

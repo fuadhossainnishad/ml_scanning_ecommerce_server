@@ -1,5 +1,8 @@
 import express from "express";
 import BrandController from "./brand.controller";
+import auth from "../../middleware/auth";
+import { upload } from "../../middleware/multer/multer";
+import { fileHandle } from "../../middleware/fileHandle";
 
 const router = express.Router();
 
@@ -8,15 +11,17 @@ router
   .get(
     // auth('User','Brand'),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-    BrandController.getBrand);
-
-router
-  .route('/:id')
-  .patch(
-    // auth('User','Brand'),
+    BrandController.getBrand
+  ).patch(
+    auth('User', 'Brand'),
+    upload.fields([{ name: "profile", maxCount: 1 }]),
+    fileHandle("profile"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     BrandController.updateBrand
   )
+
+router
+  .route('/:id')
   .delete(
     // auth('User','Brand'),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),

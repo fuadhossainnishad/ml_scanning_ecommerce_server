@@ -7,6 +7,8 @@ export interface IReview {
   attachment: string;
   comments: string;
   isDeleted: boolean;
+  createdAt: Date
+  updatedAt: Date
 }
 
 export type TReviewUpdate = Partial<IReview> & {

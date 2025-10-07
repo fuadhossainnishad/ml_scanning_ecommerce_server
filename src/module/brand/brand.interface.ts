@@ -6,6 +6,7 @@ export interface IBrand
   extends IAdmin, ISignup {
   brandName: string;
   brandLogo: string | null | undefined;
+  theme: string
 }
 
 export interface IRecentActivity extends Document {

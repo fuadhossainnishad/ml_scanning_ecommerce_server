@@ -3,68 +3,83 @@ import { RequestHandler } from "express";
 import catchAsync from "../../utility/catchAsync";
 import AppError from "../../app/error/AppError";
 import sendResponse from "../../utility/sendResponse";
+import ReviewServices from "./review.services";
 import GenericService from "../../utility/genericService.helpers";
-import { idConverter } from "../../utility/idConverter";
-import Admin from "./review.model";
-import { IAdmin } from "./review.interface";
-import AdminServices from "./review.services";
-import NotificationServices from "../notification/notification.service";
+import Review from "./review.model";
+import { IReview } from "./review.interface";
 
-const getAdmin: RequestHandler = catchAsync(async (req, res) => {
-  const { adminId } = req.body.data;
-  console.log("adminId: ", adminId.toString());
+const createReview: RequestHandler = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  console.log("ReviewId: ", id.toString());
 
-  if (!adminId) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Admin ID is required", "");
+  if (!id || !req.user || req.user.role !== 'User') {
+    throw new AppError(httpStatus.BAD_REQUEST, "ProductId & Authencated User is required", "");
   }
-  const result = await GenericService.findResources<IAdmin>(
-    Admin,
-    await idConverter(adminId)
-  );
+  req.body.data.userId = req.user._id
+  req.body.data.productId = id
+
+  const result = await GenericService.insertResources<IReview>(Review, req.body.data)
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully retrieve admin data",
+    message: "successfully retrieve Review data",
     data: result,
   });
 });
+const getReview: RequestHandler = catchAsync(async (req, res) => {
+  const { productId } = req.query;
+  console.log("ReviewId: ", productId!.toString());
 
-const updateAdmin: RequestHandler = catchAsync(async (req, res) => {
-  if (!req.user) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated", "");
+  if (!productId || !req.user || req.user.role !== 'User') {
+    throw new AppError(httpStatus.BAD_REQUEST, "ProductId ID is required", "");
   }
-  const adminId = req.user?._id;
-  console.log("userId: ", adminId.toString());
-
-  if (!adminId) {
-    throw new AppError(httpStatus.BAD_REQUEST, "adminId is required", "");
-  }
-  req.body.data.adminId = adminId;
-  const result = await AdminServices.updateAdminService(req.body.data);
-
-  await NotificationServices.sendNoification({
-    ownerId: req.user?._id,
-    key: "notification",
-    data: {
-      id: result.Admin._id.toString(),
-      message: `Admin profile updated`,
-    },
-    receiverId: [req.user?._id],
-    notifyAdmin: true,
-  });
+  const result = await ReviewServices.getReviewService(productId as string)
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully updated admin profile",
+    message: "successfully retrieve Review data",
     data: result,
   });
 });
 
-const AdminController = {
-  getAdmin,
-  updateAdmin,
+// const updateReview: RequestHandler = catchAsync(async (req, res) => {
+//   if (!req.user) {
+//     throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated", "");
+//   }
+//   const ReviewId = req.user?._id;
+//   console.log("userId: ", ReviewId.toString());
+
+//   if (!ReviewId) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "ReviewId is required", "");
+//   }
+//   req.body.data.ReviewId = ReviewId;
+//   const result = await ReviewServices.updateReviewService(req.body.data);
+
+//   await NotificationServices.sendNoification({
+//     ownerId: req.user?._id,
+//     key: "notification",
+//     data: {
+//       id: result.Review._id.toString(),
+//       message: `Review profile updated`,
+//     },
+//     receiverId: [req.user?._id],
+//     notifyReview: true,
+//   });
+
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.CREATED,
+//     message: "successfully updated Review profile",
+//     data: result,
+//   });
+// });
+
+const ReviewController = {
+  createReview,
+  getReview,
+  // updateReview,
 };
 
-export default AdminController;
+export default ReviewController;
