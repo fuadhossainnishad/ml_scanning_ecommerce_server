@@ -5,7 +5,7 @@ import { IAdmin } from "../admin/admin.interface";
 export interface IBrand
   extends IAdmin, ISignup {
   brandName: string;
-  brandLogo: string | null | undefined;
+  brandLogo: string[] | null | undefined;
   theme: string
 }
 

@@ -1,6 +1,6 @@
 import express from "express";
 import auth from "../../middleware/auth";
-import PostController from "./post.controller";
+import PostController from "./react.controller";
 import { upload } from "../../middleware/multer/multer";
 import { fileHandle } from "../../middleware/fileHandle";
 
@@ -9,13 +9,13 @@ const router = express.Router();
 router
   .route("/")
   .post(
-    auth("Brand","User"),
-    upload.fields([{ name: "attachment", maxCount: 1 }]),
-    fileHandle("attachment"),
+    auth("Brand"),
+    upload.fields([{ name: "attachement", maxCount: 1 }]),
+    fileHandle("attachement"),
     PostController.createPost
   )
   .get(
-    // auth("User", "Brand"),
+    auth("User", "Brand"),
     PostController.getAllPost
   )
 
@@ -39,5 +39,5 @@ router
 //   PostController.Webhook
 // );
 
-const PostRouter = router;
-export default PostRouter;
+const ReactRouter = router;
+export default ReactRouter;

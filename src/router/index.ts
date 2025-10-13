@@ -10,6 +10,10 @@ import ProductRouter from "../module/product/product.routes";
 import PostRouter from "../module/post/post.routes";
 import StatsRouter from "../module/stats/stats.routes";
 import BrandRouter from "../module/brand/brand.routes";
+import ReviewRouter from "../module/review/review.routes";
+import CommentsRouter from "../module/comments/comments.routes";
+import ReactRouter from "../module/react/react.routes";
+import SavePostRouter from "../module/Save/Save.routes";
 
 const router = express.Router();
 
@@ -19,8 +23,12 @@ const moduleRoutes = [
   { path: "/user", route: UserRouter },
   { path: '/brand', route: BrandRouter },
   { path: "/admin", route: AdminRouter },
+  { path: "/comments", route: CommentsRouter },
   { path: "/product", route: ProductRouter },
   { path: "/post", route: PostRouter },
+  { path: "/react", route: ReactRouter },
+  { path: "/review", route: ReviewRouter },
+  { path: "/savepost", route: SavePostRouter },
   { path: "/settings", route: SettingsRouter },
   { path: "/stats", route: StatsRouter },
   { path: "/subscription", route: SubscriptionRouter },

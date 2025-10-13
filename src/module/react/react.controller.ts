@@ -6,20 +6,20 @@ import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
 import NotificationServices from "../notification/notification.service";
-import { IPost } from "./post.interface";
-import Post from "./post.model";
+import { IPost } from "../post/post.interface";
+import Post from "../post/post.model";
 
 const createPost: RequestHandler = catchAsync(async (req, res) => {
-  if (req.user?.role !== "Brand" && req.user?.role !== "User") {
+  if (req.user?.role !== "Brand") {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "Brand is required",
       ""
     );
   }
-  const { _id, role } = req.user
+  const { _id, brandName, brandLogo } = req.user
 
-  const { attachment, tags } = req.body.data!;
+  const { attachment, tags } = req.body.data;
   if (!attachment || tags.lenght === 0) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
@@ -27,11 +27,9 @@ const createPost: RequestHandler = catchAsync(async (req, res) => {
       ""
     );
   }
-  req.body.data.uploaderId = _id
-  req.body.data.uploaderType = role
-  req.body.data.brandId = await idConverter(req.body.data.brandId!)
-  console.log("post:", req.body.data);
-
+  req.body.data.brandId = _id
+  req.body.data.brandName = brandName
+  req.body.data.brandLogo = brandLogo
 
   const result = await GenericService.insertResources<IPost>(
     Post,

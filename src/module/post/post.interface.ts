@@ -1,23 +1,16 @@
 import { Types } from "mongoose";
 
-export interface IComments {
-  userId: Types.ObjectId
-  comment: string
-  createdAt: Date
-  updatedAt: Date
-}
+
 
 export interface IPost {
+  uploaderId: Types.ObjectId
+  uploaderType: string
   brandId: Types.ObjectId
   brandName: string
-  brandLogo: string
-  attachment: string
+  attachment: string[]
   caption: string
   tags: string[]
-  likes: Types.ObjectId[]
-  totalLikes: number
-  comments: IComments[]
-  totalComments: number
+  isDeleted: boolean
   createdAt: Date
   updatedAt: Date
 }

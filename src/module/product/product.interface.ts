@@ -40,11 +40,14 @@ export interface IProduct {
   measurement: IMeasurement[]
   totalQuantity: number
   price: number
-  inStock:boolean
+  inStock: boolean
   stripe_price_id: string
   discountPrice: number
   saleTag: boolean
-  shippingNote: string
+  shippingNote: string,
+  isDeleted: boolean
+  createdAt: Date
+  updatedAt: Date
 }
 
 export type TUpdateProduct = Partial<IProduct> & {

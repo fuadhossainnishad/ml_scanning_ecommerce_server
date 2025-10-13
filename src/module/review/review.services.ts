@@ -1,21 +1,38 @@
 import { idConverter } from "../../utility/idConverter";
+import User from "../user/user.model";
 import Review from "./review.model";
 
 const getReviewService = async (productId: string) => {
+  const productIdObject = await idConverter(productId);
+  console.log("Converted ProductId: ", productIdObject);
+
+  const review = await Review.findOne({ productId: productIdObject });
+  console.log("Review productId in DB:", review);
+
+  const user = await User.findOne({ _id: review?.userId });
+  console.log("Review userId in DB:", user);
+
+
   const result = await Review.aggregate([
     {
-      $match: { productId: await idConverter(productId) }
+      $match: {
+        productId: productIdObject,
+        isDeleted: { $ne: true }
+      },
     },
     {
       $lookup: {
-        from: 'users',
+        from: 'Admin',
         localField: 'userId',
         foreignField: '_id',
         as: 'userInfo'
       }
     },
     {
-      $unwind: '$userInfo'
+      $unwind: {
+        path: '$userInfo',
+        preserveNullAndEmptyArrays: true
+      }
     },
     {
       $project: {
@@ -29,10 +46,11 @@ const getReviewService = async (productId: string) => {
         'userInfo.profile': 1
       }
     }
-  ])
+  ]);
+  console.log("Review aggregation result:", result);
+  return result;
+};
 
-  return result
-}
 // const updateReviewService = async (payload: TAdminUpdate) => {
 //   const { adminId, ...updateData } = payload;
 //   const adminIdObject = await idConverter(adminId);

@@ -19,7 +19,8 @@ export interface ISignup extends ISignIn {
   firstName: string;
   lastName: string;
   userName: string;
-  profile: string
+  profile: string[],
+  coverPhoto: string[],
   countryCode: string;
   mobile: string;
   confirmedPassword: string;

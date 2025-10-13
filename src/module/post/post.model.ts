@@ -1,23 +1,20 @@
 import { model, Model, Schema } from "mongoose";
 import MongooseHelper from "../../utility/mongoose.helpers";
-import { IComments, IPost } from "./post.interface";
+import { IPost } from "./post.interface";
 
-const CommentsSchema: Schema = new Schema<IComments>({
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  comment: {
-    type: String,
-    required: true
-  }
-},
-  { timestamps: true }
-)
+
 
 const PostSchema: Schema = new Schema<IPost>({
-
+  uploaderId: {
+    type: Schema.Types.ObjectId,
+    refPath: "uploaderType",
+    required: true
+  },
+  uploaderType: {
+    type: String,
+    required: true,
+    enum: ['User', 'Brand']
+  },
   brandId: {
     type: Schema.Types.ObjectId,
     ref: "Brand",
@@ -25,14 +22,11 @@ const PostSchema: Schema = new Schema<IPost>({
   },
   brandName: {
     type: String,
-    required: true
-  },
-  brandLogo: {
-    type: String,
+    ref: "Brand",
     required: true
   },
   attachment: {
-    type: String,
+    type: [String],
     required: true
   },
   caption: {
@@ -44,22 +38,9 @@ const PostSchema: Schema = new Schema<IPost>({
     type: String,
     required: true
   }],
-  likes: [{
-    type: Schema.Types.ObjectId,
-    ref: "User",
-    default: []
-  }],
-  totalLikes: {
-    type: Number,
-    default: 0
-  },
-  comments: [{
-    type: CommentsSchema,
-    default: []
-  }],
-  totalComments: {
-    type: Number,
-    default: 0
+  isDeleted: {
+    type: Boolean,
+    default: false
   }
 },
   { timestamps: true }

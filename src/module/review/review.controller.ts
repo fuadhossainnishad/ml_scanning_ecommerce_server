@@ -7,18 +7,22 @@ import ReviewServices from "./review.services";
 import GenericService from "../../utility/genericService.helpers";
 import Review from "./review.model";
 import { IReview } from "./review.interface";
+import { idConverter } from "../../utility/idConverter";
 
 const createReview: RequestHandler = catchAsync(async (req, res) => {
   const { id } = req.params;
-  console.log("ReviewId: ", id.toString());
+  console.log("ProductId: ", id.toString());
 
   if (!id || !req.user || req.user.role !== 'User') {
     throw new AppError(httpStatus.BAD_REQUEST, "ProductId & Authencated User is required", "");
   }
-  req.body.data.userId = req.user._id
-  req.body.data.productId = id
+  console.log("review:", req.body.data);
 
-  const result = await GenericService.insertResources<IReview>(Review, req.body.data)
+  req.body.data.userId = req.user._id;
+  req.body.data.productId = await idConverter(id);
+  console.log("review:", req.body.data);
+
+  const result = await GenericService.insertResources<IReview>(Review, req.body.data);
 
   sendResponse(res, {
     success: true,

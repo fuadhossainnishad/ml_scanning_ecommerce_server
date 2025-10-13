@@ -6,35 +6,28 @@ import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
 import NotificationServices from "../notification/notification.service";
-import { IPost } from "./post.interface";
-import Post from "./post.model";
+import { IComments } from "./comments.interface";
+import Comments from "./comments.model";
 
-const createPost: RequestHandler = catchAsync(async (req, res) => {
-  if (req.user?.role !== "Brand" && req.user?.role !== "User") {
+const createComments: RequestHandler = catchAsync(async (req, res) => {
+  req.body.data.postId = await idConverter(req?.params.id);
+  if (!req.user) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Brand is required",
+      "Commentor Id is required",
       ""
     );
   }
   const { _id, role } = req.user
 
-  const { attachment, tags } = req.body.data!;
-  if (!attachment || tags.lenght === 0) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Attachment, Tags are required",
-      ""
-    );
-  }
-  req.body.data.uploaderId = _id
-  req.body.data.uploaderType = role
-  req.body.data.brandId = await idConverter(req.body.data.brandId!)
-  console.log("post:", req.body.data);
+  req.body.data.commentorId = _id
+  req.body.data.role = role
+
+  console.log("Comments:", req.body.data);
 
 
-  const result = await GenericService.insertResources<IPost>(
-    Post,
+  const result = await GenericService.insertResources<IComments>(
+    Comments,
     req.body?.data
   );
 
@@ -53,37 +46,37 @@ const createPost: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully added new Post",
+    message: "successfully added new Comments",
     data: result,
   });
 });
 
-const getPost: RequestHandler = catchAsync(async (req, res) => {
-  const { PostId } = req.body.data;
-  console.log("PostId: ", PostId);
+const getComments: RequestHandler = catchAsync(async (req, res) => {
+  const { CommentsId } = req.body.data;
+  console.log("CommentsId: ", CommentsId);
 
-  if (!PostId) {
+  if (!CommentsId) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Post ID is required",
+      "Comments ID is required",
       ""
     );
   }
-  const result = await GenericService.findResources<IPost>(
-    Post,
-    await idConverter(PostId)
+  const result = await GenericService.findResources<IComments>(
+    Comments,
+    await idConverter(CommentsId)
   );
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully retrieve all Post data",
+    message: "successfully retrieve all Comments data",
     data: result,
   });
 });
 
-const getAllPost: RequestHandler = catchAsync(async (req, res) => {
-  const result = await GenericService.findAllResources<IPost>(
-    Post,
+const getAllComments: RequestHandler = catchAsync(async (req, res) => {
+  const result = await GenericService.findAllResources<IComments>(
+    Comments,
     req.query,
     []
   );
@@ -91,12 +84,12 @@ const getAllPost: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully retrieve post data",
+    message: "successfully retrieve Comments data",
     data: result,
   });
 });
 
-const updatePost: RequestHandler = catchAsync(async (req, res) => {
+const updateComments: RequestHandler = catchAsync(async (req, res) => {
   // if (!req.user) {
   //   throw new AppError(httpStatus.UNAUTHORIZED, "Admin not authenticated", "");
   // }
@@ -109,8 +102,8 @@ const updatePost: RequestHandler = catchAsync(async (req, res) => {
   //       ? rawId[0]
   //       : undefined;
 
-  const result = await GenericService.updateResources<IPost>(
-    Post,
+  const result = await GenericService.updateResources<IComments>(
+    Comments,
     await idConverter(id),
     req.body.data
   );
@@ -119,8 +112,8 @@ const updatePost: RequestHandler = catchAsync(async (req, res) => {
   //   ownerId: req.user?._id,
   //   key: "notification",
   //   data: {
-  //     id: result.Post?._id.toString(),
-  //     message: `An Post updated`,
+  //     id: result.Comments?._id.toString(),
+  //     message: `An Comments updated`,
   //   },
   //   receiverId: [req.user?._id],
   // });
@@ -128,12 +121,12 @@ const updatePost: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully updated Post ",
+    message: "successfully updated Comments ",
     data: result,
   });
 });
 
-const deletePost: RequestHandler = catchAsync(async (req, res) => {
+const deleteComments: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Admin not authenticated", "");
   }
@@ -141,21 +134,21 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
   if (req.user?.role !== "Admin") {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      "Only admin can do update Post",
+      "Only admin can do update Comments",
       ""
     );
   }
-  const { PostId } = req.body.data;
-  const result = await GenericService.deleteResources<IPost>(
-    Post,
-    await idConverter(PostId)
+  const { CommentsId } = req.body.data;
+  const result = await GenericService.deleteResources<IComments>(
+    Comments,
+    await idConverter(CommentsId)
   );
 
   await NotificationServices.sendNoification({
     ownerId: req.user?._id,
     key: "notification",
     data: {
-      message: `An Post deleted`,
+      message: `An Comments deleted`,
     },
     receiverId: [req.user?._id],
   });
@@ -163,17 +156,30 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully deleted Post",
+    message: "successfully deleted Comments",
     data: result,
   });
 });
 
-// const TrialPost: RequestHandler = catchAsync(async (req, res) => {
+const CommentsController = {
+  createComments,
+  getComments,
+  getAllComments,
+  updateComments,
+  deleteComments,
+  // TrialComments,
+  // PaidComments,
+  // Webhook
+};
+
+export default CommentsController;
+
+// const TrialComments: RequestHandler = catchAsync(async (req, res) => {
 //   const { role, email, id, stripe_customer_id } = req.user;
 //   if (role !== "User" || !email || !id) {
 //     throw new AppError(
 //       httpStatus.BAD_REQUEST,
-//       "Only valid user can have trial Post",
+//       "Only valid user can have trial Comments",
 //       ""
 //     );
 //   }
@@ -181,23 +187,23 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //     const customer_id = await StripeUtils.CreateCustomerId(email);
 //     req.user = await GenericService.updateResources<IUser>(User, id, { stripe_customer_id: customer_id })
 //   }
-//   const { PostPlan } = req.user
-//   if (PostPlan.subType !== "none" && !PostPlan.trialUsed) {
+//   const { CommentsPlan } = req.user
+//   if (CommentsPlan.subType !== "none" && !CommentsPlan.trialUsed) {
 //     throw new AppError(
 //       httpStatus.BAD_REQUEST,
-//       "You have already used your trial Post",
+//       "You have already used your trial Comments",
 //       ""
 //     );
 //   }
 
-//   PostPlan.trial.start = new Date()
-//   PostPlan.trial.end = new Date(PostPlan.trial.start.getTime() + 30 * 24 * 60 * 60 * 1000)
+//   CommentsPlan.trial.start = new Date()
+//   CommentsPlan.trial.end = new Date(CommentsPlan.trial.start.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-//   const result = await PostServices.trialService<IUser & { _id: Types.ObjectId }>(req.user)
-//   PostPlan.trial.stripe_Post_id = result
-//   PostPlan.subType = SubType.TRIAL
-//   PostPlan.trial.active = true
-//   PostPlan.isActive = true
+//   const result = await CommentsServices.trialService<IUser & { _id: Types.ObjectId }>(req.user)
+//   CommentsPlan.trial.stripe_Comments_id = result
+//   CommentsPlan.subType = SubType.TRIAL
+//   CommentsPlan.trial.active = true
+//   CommentsPlan.isActive = true
 //   req.user.sub_status = SubStatus.ACTIVE
 
 //   const updateUser = await GenericService.updateResources<IUser>(User, id, req.user)
@@ -205,26 +211,26 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //   sendResponse(res, {
 //     success: true,
 //     statusCode: httpStatus.CREATED,
-//     message: "successfully get trial Post",
+//     message: "successfully get trial Comments",
 //     data: updateUser,
 //   });
 // })
 
-// const PaidPost: RequestHandler = catchAsync(async (req, res) => {
+// const PaidComments: RequestHandler = catchAsync(async (req, res) => {
 //   const { role, email, id, stripe_customer_id } = req.user;
-//   const { PostId } = req.body.data
+//   const { CommentsId } = req.body.data
 
 //   if (role !== "User" || !email || !id) {
 //     throw new AppError(
 //       httpStatus.BAD_REQUEST,
-//       "Only valid user can have paid Post",
+//       "Only valid user can have paid Comments",
 //     );
 //   }
 
-//   if (!PostId) {
+//   if (!CommentsId) {
 //     throw new AppError(
 //       httpStatus.BAD_REQUEST,
-//       "select a Post",
+//       "select a Comments",
 //     );
 //   }
 
@@ -233,35 +239,35 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //     req.user = await GenericService.updateResources<IUser>(User, id, { stripe_customer_id: customer_id })
 //   }
 
-//   // const { PostPlan } = req.user
-//   // if (PostPlan.subType === "paid" && PostPlan.paid.status === "active") {
+//   // const { CommentsPlan } = req.user
+//   // if (CommentsPlan.subType === "paid" && CommentsPlan.paid.status === "active") {
 //   //   throw new AppError(
 //   //     httpStatus.BAD_REQUEST,
-//   //     "You have already used your paid Post",
+//   //     "You have already used your paid Comments",
 //   //     ""
 //   //   );
 //   // }
 
-//   const Post = await GenericService.findResources<IPost>(Post, await idConverter(PostId))
+//   const Comments = await GenericService.findResources<IComments>(Comments, await idConverter(CommentsId))
 
 //   const paymentIntent = await StripeServices.createPaymentIntentService({
 //     userId: req.user._id.toString(),
 //     stripe_customer_id: req.user.stripe_customer_id,
-//     PostId: PostId,
-//     amount: Post[0].price,
+//     CommentsId: CommentsId,
+//     amount: Comments[0].price,
 //     currency: 'usd'
 //   })
 
 //   sendResponse(res, {
 //     success: true,
 //     statusCode: httpStatus.CONTINUE,
-//     message: "please complete your payment to activate paid Post",
+//     message: "please complete your payment to activate paid Comments",
 //     data: paymentIntent,
 //   });
 // })
 
 // const Webhook: RequestHandler = catchAsync(async (req, res) => {
-//   const { _id, stripe_customer_id, PostPlan } = req.user
+//   const { _id, stripe_customer_id, CommentsPlan } = req.user
 //   const sig = req.headers["stripe-signature"] as string;
 //   const rawbody = req.body.data
 
@@ -270,14 +276,14 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //     rawbody,
 //   });
 
-//   const { orderid, PostId } = paymentIntent.metadata
+//   const { orderid, CommentsId } = paymentIntent.metadata
 
 //   const paymentPayload: IPayment = {
 //     orderId: await idConverter(orderid),
 //     userId: _id,
 //     stripeCustomerId: stripe_customer_id,
 //     paymentIntentId: paymentIntent.id,
-//     PostId: await idConverter(PostId),
+//     CommentsId: await idConverter(CommentsId),
 //     amount: paymentIntent.amount_received / 100,
 //     currency: paymentIntent.currency,
 //     payment_method: paymentIntent.payment_method_types[0],
@@ -287,17 +293,17 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 
 //   const insertPayment = await GenericService.insertResources<IPayment>(Payment, paymentPayload)
 
-//   PostPlan.paid.Post_id = await idConverter(PostId)
-//   PostPlan.paid.status = PaidStatus.ACTIVE
-//   PostPlan.paid.start = new Date()
-//   PostPlan.paid.end = new Date(PostPlan.paid.start.getTime() + PostPlan.paid.length * 24 * 60 * 60 * 1000)
-//   PostPlan.subType = SubType.PAID
-//   PostPlan.isActive = true
+//   CommentsPlan.paid.Comments_id = await idConverter(CommentsId)
+//   CommentsPlan.paid.status = PaidStatus.ACTIVE
+//   CommentsPlan.paid.start = new Date()
+//   CommentsPlan.paid.end = new Date(CommentsPlan.paid.start.getTime() + CommentsPlan.paid.length * 24 * 60 * 60 * 1000)
+//   CommentsPlan.subType = SubType.PAID
+//   CommentsPlan.isActive = true
 //   req.user.sub_status = SubStatus.ACTIVE
 
 //   await GenericService.updateResources<IUser>(User, _id, req.user)
 
-//   // const updateOrderStatus = await Post.findByIdAndUpdate(
+//   // const updateOrderStatus = await Comments.findByIdAndUpdate(
 //   //   await idConverter(orderId),
 //   //   { status: "accept" },
 //   //   { new: true }
@@ -312,20 +318,8 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //   sendResponse(res, {
 //     success: true,
 //     statusCode: httpStatus.CREATED,
-//     message: "success fully paid your Post",
+//     message: "success fully paid your Comments",
 //     data: insertPayment,
 //   });
 // });
 
-const PostController = {
-  createPost,
-  getPost,
-  getAllPost,
-  updatePost,
-  deletePost,
-  // TrialPost,
-  // PaidPost,
-  // Webhook
-};
-
-export default PostController;

@@ -8,13 +8,13 @@ const BrandSchema: Schema = new Schema<IBrand>(
   {
     brandName: { type: String, required: function (this: IBrand) { return this.role === 'Brand'; } },
     brandLogo: {
-      type: String,
+      type: [String],
       // required: false,
       // default: "",
       required: function (this: IBrand) { return this.role === 'Brand'; },
       validate: {
-        validator: function (value: string) {
-          if (this.role === "Brand" && !value) return false;
+        validator: function (value: string[]) {
+          if (this.role === "Brand" && value.length !== 1) return false;
           return true;
         },
         message: "brandLogo is required for Brand"
@@ -22,7 +22,7 @@ const BrandSchema: Schema = new Schema<IBrand>(
     },
     theme: {
       type: String,
-      default: ""
+      required: true
     }
   }
   , { timestamps: true, collection: "brands" }

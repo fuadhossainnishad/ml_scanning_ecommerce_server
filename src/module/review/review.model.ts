@@ -16,9 +16,9 @@ const ReviewSchema: Schema = new Schema<IReview>({
     required: true
   },
   attachment: {
-    type: String,
+    type: [String],
     required: false,
-    default: "",
+    default: [],
   },
   ratings: {
     type: Number,
@@ -30,8 +30,12 @@ const ReviewSchema: Schema = new Schema<IReview>({
   comments: {
     type: String,
     required: true
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
   }
-})
+}, { timestamps: true });
 
 // MongooseHelper.excludeFields(ReviewSchema, ["firstName", "lastName"], "Admin");
 MongooseHelper.applyToJSONTransform(ReviewSchema);

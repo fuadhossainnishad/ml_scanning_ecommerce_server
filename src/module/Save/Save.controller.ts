@@ -6,36 +6,42 @@ import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
 import NotificationServices from "../notification/notification.service";
-import { IPost } from "./post.interface";
-import Post from "./post.model";
+import { IPost } from "../post/post.interface";
+import Post from "../post/post.model";
+import SavePost from "./Save.model";
+import { ISavePost } from "./Save.interface";
 
-const createPost: RequestHandler = catchAsync(async (req, res) => {
-  if (req.user?.role !== "Brand" && req.user?.role !== "User") {
+const createSavePost: RequestHandler = catchAsync(async (req, res) => {
+  const { postId } = req.params
+
+  if (!postId) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Brand is required",
+      "Post ID is required",
+      ""
+    );
+  }
+
+  if (req.user?.role !== "Brand" && req.user.role !== "User") {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "User/Brand is required",
       ""
     );
   }
   const { _id, role } = req.user
-
-  const { attachment, tags } = req.body.data!;
-  if (!attachment || tags.lenght === 0) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Attachment, Tags are required",
-      ""
-    );
+  const data: ISavePost = {
+    saverId: _id,
+    saverType: role,
+    postId: [await idConverter(postId)],
+    isDeleted: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   }
-  req.body.data.uploaderId = _id
-  req.body.data.uploaderType = role
-  req.body.data.brandId = await idConverter(req.body.data.brandId!)
-  console.log("post:", req.body.data);
 
-
-  const result = await GenericService.insertResources<IPost>(
-    Post,
-    req.body?.data
+  const result = await GenericService.insertResources<ISavePost>(
+    SavePost,
+    data
   );
 
   // await NotificationServices.sendNoification({
@@ -58,7 +64,7 @@ const createPost: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
-const getPost: RequestHandler = catchAsync(async (req, res) => {
+const getSavePost: RequestHandler = catchAsync(async (req, res) => {
   const { PostId } = req.body.data;
   console.log("PostId: ", PostId);
 
@@ -81,10 +87,22 @@ const getPost: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
-const getAllPost: RequestHandler = catchAsync(async (req, res) => {
-  const result = await GenericService.findAllResources<IPost>(
-    Post,
-    req.query,
+const getAllSavePost: RequestHandler = catchAsync(async (req, res) => {
+  if (!req.user) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "User/Brand is required",
+      ""
+    );
+  }
+  const query = {
+    ...req?.query,
+    saverId: req.user?._id.toString()
+  }
+
+  const result = await GenericService.findAllResources<ISavePost>(
+    SavePost,
+    query,
     []
   );
 
@@ -96,7 +114,7 @@ const getAllPost: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
-const updatePost: RequestHandler = catchAsync(async (req, res) => {
+const updateSavePost: RequestHandler = catchAsync(async (req, res) => {
   // if (!req.user) {
   //   throw new AppError(httpStatus.UNAUTHORIZED, "Admin not authenticated", "");
   // }
@@ -133,7 +151,7 @@ const updatePost: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
-const deletePost: RequestHandler = catchAsync(async (req, res) => {
+const deleteSavePost: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Admin not authenticated", "");
   }
@@ -317,15 +335,15 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //   });
 // });
 
-const PostController = {
-  createPost,
-  getPost,
-  getAllPost,
-  updatePost,
-  deletePost,
+const SavePostController = {
+  createSavePost,
+  getSavePost,
+  getAllSavePost,
+  updateSavePost,
+  deleteSavePost,
   // TrialPost,
   // PaidPost,
   // Webhook
 };
 
-export default PostController;
+export default SavePostController;

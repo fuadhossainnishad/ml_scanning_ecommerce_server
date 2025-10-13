@@ -1,6 +1,8 @@
 import express from "express";
 import ReviewController from "./review.controller";
 import auth from "../../middleware/auth";
+import { upload } from "../../middleware/multer/multer";
+import { fileHandle } from "../../middleware/fileHandle";
 
 const router = express.Router();
 
@@ -8,6 +10,8 @@ router
   .route("/:id")
   .post(
     auth('User'),
+    upload.fields([{name:"attachment",maxCount:10}]),
+    fileHandle("attachment"),
     ReviewController.createReview
   )
 
@@ -25,5 +29,5 @@ router
 //   ReviewController.getReview
 // );
 
-const AdminRouter = router;
-export default AdminRouter;
+const ReviewRouter = router;
+export default ReviewRouter;

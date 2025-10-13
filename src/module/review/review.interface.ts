@@ -4,7 +4,7 @@ export interface IReview {
   userId: Types.ObjectId
   productId: Types.ObjectId
   ratings: number;
-  attachment: string;
+  attachment: string[];
   comments: string;
   isDeleted: boolean;
   createdAt: Date
