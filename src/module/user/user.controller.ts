@@ -7,7 +7,6 @@ import GenericService from "../../utility/genericService.helpers";
 import User from "./user.model";
 import { IUser } from "./user.interface";
 import { idConverter } from "../../utility/idConverter";
-import UserServices from "./user.services";
 import NotificationServices from "../notification/notification.service";
 
 // const getUser: RequestHandler = catchAsync(async (req, res) => {
@@ -48,25 +47,20 @@ const updateUser: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated", "");
   }
-  const userId = req.user?._id;
-  console.log("userId: ", userId.toString());
 
-  if (!userId) {
-    throw new AppError(httpStatus.BAD_REQUEST, "userId is required", "");
-  }
-  req.body.data.userId = userId;
-  const result = await UserServices.updateUserService(req.body.data);
+  req.body.data._id = req.user?._id;
+  const result = await GenericService.updateResources<IUser>(User, req.user?._id, req.body.data);
 
-  await NotificationServices.sendNoification({
-    ownerId: await idConverter(req.body.data.userId),
-    key: "notification",
-    data: {
-      id: userId,
-      message: `User updated`,
-    },
-    receiverId: [userId],
-    notifyAdmin: true,
-  });
+  // await NotificationServices.sendNoification({
+  //   ownerId: await idConverter(req.body.data.userId),
+  //   key: "notification",
+  //   data: {
+  //     id: userId,
+  //     message: `User updated`,
+  //   },
+  //   receiverId: [userId],
+  //   notifyAdmin: true,
+  // });
 
   sendResponse(res, {
     success: true,

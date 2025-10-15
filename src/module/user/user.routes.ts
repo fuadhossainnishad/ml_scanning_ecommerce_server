@@ -14,6 +14,7 @@ router
     UserController.getUser
   )
   .patch(
+    auth("User", "Brand", "Admin"),
     upload.fields([{ name: "profile", maxCount: 1 }]),
     fileHandle("profile"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),

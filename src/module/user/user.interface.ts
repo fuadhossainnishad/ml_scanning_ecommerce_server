@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { IAdmin } from "../admin/admin.interface";
 import { ISignup } from "../auth/auth.interface";
 export interface IUser extends ISignup, IAdmin {
@@ -7,5 +8,5 @@ export interface IUser extends ISignup, IAdmin {
 }
 
 export type TUserUpdate = Partial<IUser> & {
-  id: string;
+  _id: Types.ObjectId;
 };

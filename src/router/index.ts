@@ -14,6 +14,7 @@ import ReviewRouter from "../module/review/review.routes";
 import CommentsRouter from "../module/comments/comments.routes";
 import ReactRouter from "../module/react/react.routes";
 import SavePostRouter from "../module/Save/Save.routes";
+import FavouriteRouter from "../module/favourite/favourite.routes";
 
 const router = express.Router();
 
@@ -24,6 +25,7 @@ const moduleRoutes = [
   { path: '/brand', route: BrandRouter },
   { path: "/admin", route: AdminRouter },
   { path: "/comments", route: CommentsRouter },
+  { path: "/favourite", route: FavouriteRouter },
   { path: "/product", route: ProductRouter },
   { path: "/post", route: PostRouter },
   { path: "/react", route: ReactRouter },

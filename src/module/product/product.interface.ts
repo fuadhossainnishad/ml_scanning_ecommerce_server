@@ -9,7 +9,9 @@ import { Types } from "mongoose";
 export enum TCategory {
   SHIRT = "shirt",
   TSHIRT = "tshirt",
-  PANT = "pant"
+  PANT = "pant",
+  JEANS = 'jeans',
+  JACKET = 'jacket'
 }
 
 export enum TSize {

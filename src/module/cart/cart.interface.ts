@@ -1,24 +1,23 @@
-import { Document, Types } from "mongoose";
+import { Types } from "mongoose";
+import { TSize } from "../product/product.interface";
 
-export interface ICart {
+export interface ISelect {
   userId: Types.ObjectId
   productId: Types.ObjectId[]
-  ratings: number;
-  attachment: string;
-  comments: string;
+  color: string
+  size: TSize
+  quantity: number;
   isDeleted: boolean;
 }
 
-export type TCartUpdate = Partial<ICart> & {
-  reviewId: string;
+export type TSelectUpdate = Partial<ISelect> & {
+  _id: string;
 };
 
-export interface IRecentActivity extends Document {
-  title: string;
+export interface ICart {
+  select: ISelect[]
 }
 
-export interface IReport extends Document {
-  title: string;
-}
-
-
+export type TCartUpdate = Partial<ICart> & {
+  _id: string;
+};

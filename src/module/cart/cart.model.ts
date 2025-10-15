@@ -1,24 +1,29 @@
 import { model, Model, Schema } from "mongoose";
 import MongooseHelper from "../../utility/mongoose.helpers";
-import { IReview } from "./cart.interface";
+import { ISelect } from "./cart.interface";
+import { TSize } from "../product/product.interface";
 
 
 
-const ReviewSchema: Schema = new Schema<IReview>({
+const SelectSchema: Schema = new Schema<ISelect>({
   userId: {
     type: Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
   productId: {
-    type: Schema.Types.ObjectId,
+    type: [Schema.Types.ObjectId],
     ref: 'Product',
     required: true
   },
-  attachment: {
+  color: {
     type: String,
-    required: false,
-    default: "",
+    required: true,
+  },
+  size: {
+    type: String,
+    enum: Object.values(TSize),
+    required: true,
   },
   ratings: {
     type: Number,

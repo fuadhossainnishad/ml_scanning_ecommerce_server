@@ -13,7 +13,7 @@ const appFirstStats: RequestHandler = catchAsync(async (req, res) => {
         throw new AppError(httpStatus.NOT_ACCEPTABLE, "Authenticated user is required");
     }
 
-    const result = await StatsServices.fetchAggragation<IBrand>(Brand, ["brandName", "brandLogo","theme"])
+    const result = await StatsServices.fetchAggregation<IBrand>(Brand, ["brandName", "brandLogo","theme"],req.query)
 
     sendResponse(res, {
         success: true,

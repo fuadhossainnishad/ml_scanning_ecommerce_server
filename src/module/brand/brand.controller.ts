@@ -5,15 +5,15 @@ import AppError from "../../app/error/AppError";
 import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { IBrand } from "./brand.interface";
-import AdminServices from "./brand.services";
-import NotificationServices from "../notification/notification.service";
+// import NotificationServices from "../notification/notification.service";
 import Brand from "./brand.model";
 
 const getBrand: RequestHandler = catchAsync(async (req, res) => {
 
-  // if (!req.user) {
-  //   throw new AppError(httpStatus.BAD_REQUEST, "Authenticate User/Brand is required", "");
-  // }
+  if (!req.user) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Authenticate User/Brand is required", "");
+  }
+
   const result = await GenericService.findAllResources<IBrand>(
     Brand,
     req.query,
@@ -29,28 +29,23 @@ const getBrand: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const updateBrand: RequestHandler = catchAsync(async (req, res) => {
-  if (!req.user) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated", "");
+  if (req.user.role !== "Brand") {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Brand not authenticated", "");
   }
-  const adminId = req.user?._id;
-  console.log("userId: ", adminId.toString());
 
-  if (!adminId) {
-    throw new AppError(httpStatus.BAD_REQUEST, "adminId is required", "");
-  }
-  req.body.data.adminId = adminId;
-  const result = await AdminServices.updateAdminService(req.body.data);
+  const brandId = req.user?._id;
+  const result = await GenericService.updateResources<IBrand>(Brand, brandId, req.body.data,);
 
-  await NotificationServices.sendNoification({
-    ownerId: req.user?._id,
-    key: "notification",
-    data: {
-      id: result.Admin._id.toString(),
-      message: `Admin profile updated`,
-    },
-    receiverId: [req.user?._id],
-    notifyAdmin: true,
-  });
+  // await NotificationServices.sendNoification({
+  //   ownerId: req.user?._id,
+  //   key: "notification",
+  //   data: {
+  //     id: result.Admin._id.toString(),
+  //     message: `Admin profile updated`,
+  //   },
+  //   receiverId: [req.user?._id],
+  //   notifyAdmin: true,
+  // });
 
   sendResponse(res, {
     success: true,

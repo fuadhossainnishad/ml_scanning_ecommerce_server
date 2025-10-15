@@ -9,11 +9,12 @@ const router = express.Router();
 router
   .route('/')
   .get(
-    // auth('User','Brand'),
+    auth('User', 'Brand'),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     BrandController.getBrand
-  ).patch(
-    auth('User', 'Brand'),
+  )
+  .patch(
+    auth('Brand'),
     upload.fields([{ name: "profile", maxCount: 1 }]),
     fileHandle("profile"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
