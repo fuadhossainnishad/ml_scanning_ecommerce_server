@@ -21,7 +21,7 @@ export const buildMeta = (page: number, limit: number, total: number): IPaginati
 };
 
 
-interface IAggregationResponse<T> {
+export interface IAggregationResponse<T> {
     meta: IPaginationMeta;
     data: T[];
 }

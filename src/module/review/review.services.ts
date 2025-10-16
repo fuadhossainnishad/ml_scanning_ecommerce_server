@@ -1,8 +1,12 @@
 import { idConverter } from "../../utility/idConverter";
+import { buildMeta, calculatePagination, IAggregationResponse } from "../stats/stats.services";
 import User from "../user/user.model";
 import Review from "./review.model";
 
-const getReviewService = async (productId: string) => {
+const getReviewService = async <T>(productId: string, query: Record<string, unknown>): Promise<IAggregationResponse<T>> => {
+  const { page, limit, skip } = calculatePagination(query);
+
+
   const productIdObject = await idConverter(productId);
   console.log("Converted ProductId: ", productIdObject);
 
@@ -12,6 +16,7 @@ const getReviewService = async (productId: string) => {
   const user = await User.findOne({ _id: review?.userId });
   console.log("Review userId in DB:", user);
 
+  const total = await Review.countDocuments();
 
   const result = await Review.aggregate([
     {
@@ -45,10 +50,17 @@ const getReviewService = async (productId: string) => {
         'userInfo.userName': 1,
         'userInfo.profile': 1
       }
-    }
+    },
+    {
+      $limit: limit
+    },
+    { $skip: skip }
   ]);
-  console.log("Review aggregation result:", result);
-  return result;
+  console.log("Review aggregation result:", result)
+  return {
+    meta: buildMeta(page, limit, total),
+    data: result as T[],
+  };;
 };
 
 // const updateReviewService = async (payload: TAdminUpdate) => {

@@ -1,19 +1,26 @@
 import express from "express";
-import AdminController from "./cart.controller";
+import CartController from "./cart.controller";
+import auth from "../../middleware/auth";
 
 const router = express.Router();
 
-router.get(
-  "/get_admin",
-  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  AdminController.getAdmin
-);
+router.route('/')
+  .get(
+    auth("User"),
+    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+    CartController.getCart
+  )
+  .put(
+    auth("User"),
+    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+    CartController.uploadCart
+  );
 
-router.patch(
-  "/update_admin",
-  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  AdminController.updateAdmin
-);
+// router.patch(
+//   "/update_admin",
+//   //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+//   AdminController.updateAdmin
+// );
 
-const AdminRouter = router;
-export default AdminRouter;
+const CartRouter = router;
+export default CartRouter;

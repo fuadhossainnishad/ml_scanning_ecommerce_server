@@ -1,45 +1,48 @@
 import { model, Model, Schema } from "mongoose";
 import MongooseHelper from "../../utility/mongoose.helpers";
-import { ISelect } from "./cart.interface";
+import { ICart, IProducts } from "./cart.interface";
 import { TSize } from "../product/product.interface";
 
-
-
-const SelectSchema: Schema = new Schema<ISelect>({
-  userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  productId: {
-    type: [Schema.Types.ObjectId],
-    ref: 'Product',
-    required: true
-  },
-  color: {
-    type: String,
-    required: true,
-  },
-  size: {
-    type: String,
-    enum: Object.values(TSize),
-    required: true,
-  },
-  ratings: {
-    type: Number,
-    validate: function (this: IReview) {
-      return this.ratings > 0 && this.ratings < 6
+const ProductsSchema: Schema = new Schema<IProducts>(
+  {
+    productId: {
+      type: [Schema.Types.ObjectId],
+      ref: "Product",
+      required: true,
     },
-    required: true
+    color: {
+      type: String,
+      required: true,
+    },
+    size: {
+      type: String,
+      enum: Object.values(TSize),
+      required: true,
+    },
+    quantity: {
+      type: Number,
+      required: true,
+    },
+    isDeleted: { type: Boolean, default: false },
   },
-  comments: {
-    type: String,
-    required: true
-  }
-})
+  { timestamps: true }
+);
 
-// MongooseHelper.excludeFields(ReviewSchema, ["firstName", "lastName"], "Admin");
-MongooseHelper.applyToJSONTransform(ReviewSchema);
+const CartSchema: Schema = new Schema(
+  {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    products: [ProductsSchema],
+    isDeleted: { type: Boolean, default: false },
+  },
+  { timestamps: true }
+);
 
-const Review: Model<IReview> = model<IReview>("Review", ReviewSchema);
-export default Review;
+MongooseHelper.applyToJSONTransform(CartSchema);
+MongooseHelper.findExistence(CartSchema);
+
+const Cart: Model<ICart> = model<ICart>("Cart", CartSchema);
+export default Cart;
