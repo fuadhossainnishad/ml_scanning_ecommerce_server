@@ -15,17 +15,14 @@ router.route('/')
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     CartController.uploadCart
   )
-  .put(
-    auth("User"),
-    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-    CartController.uploadCart
-  );
+  ;
 
-// router.patch(
-//   "/update_admin",
-//   //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-//   AdminController.updateAdmin
-// );
+router.patch(
+  '/:id',
+  auth("User"),
+  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+  CartController.updateCart
+)
 
 const CartRouter = router;
 export default CartRouter;
