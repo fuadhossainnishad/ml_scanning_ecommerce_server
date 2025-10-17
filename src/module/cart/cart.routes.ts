@@ -10,6 +10,11 @@ router.route('/')
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     CartController.getCart
   )
+  .post(
+    auth("User"),
+    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+    CartController.uploadCart
+  )
   .put(
     auth("User"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),

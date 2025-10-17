@@ -6,7 +6,7 @@ import { TSize } from "../product/product.interface";
 const ProductsSchema: Schema = new Schema<IProducts>(
   {
     productId: {
-      type: [Schema.Types.ObjectId],
+      type: Schema.Types.ObjectId,
       ref: "Product",
       required: true,
     },
