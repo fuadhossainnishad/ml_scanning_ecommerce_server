@@ -3,7 +3,7 @@ import MongooseHelper from "../../utility/mongoose.helpers";
 import { ICart, IProducts } from "./cart.interface";
 import { TSize } from "../product/product.interface";
 
-const ProductsSchema: Schema = new Schema<IProducts>(
+export const ProductsSchema: Schema = new Schema<IProducts>(
   {
     productId: {
       type: Schema.Types.ObjectId,

@@ -9,7 +9,7 @@ const router = express.Router();
 router
   .route("/")
   .post(
-    auth("Brand","User"),
+    auth("Brand", "User"),
     upload.fields([{ name: "attachment", maxCount: 1 }]),
     fileHandle("attachment"),
     PostController.createPost
@@ -20,9 +20,9 @@ router
   )
 
 router
-  .route("/:id")
-  .patch(
-    auth("Brand"),
+  .route("/:uploadId")
+  .get(
+    auth("Brand", "User"),
     upload.fields([{ name: "attachement", maxCount: 1 }]),
     fileHandle("attachement"),
     PostController.deletePost

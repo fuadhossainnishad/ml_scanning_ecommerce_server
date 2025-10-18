@@ -1,7 +1,5 @@
 import { Types } from "mongoose";
 
-
-
 export interface IPost {
   uploaderId: Types.ObjectId
   uploaderType: string

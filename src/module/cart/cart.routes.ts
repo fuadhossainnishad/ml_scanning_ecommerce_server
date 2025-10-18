@@ -17,11 +17,11 @@ router.route('/')
   )
   ;
 
-router.patch(
-  '/:id',
+router.delete(
+  '/:productId',
   auth("User"),
   //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-  CartController.updateCart
+  CartController.deleteFromCart
 )
 
 const CartRouter = router;

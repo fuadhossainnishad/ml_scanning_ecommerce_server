@@ -16,3 +16,14 @@ export interface IPayment {
 // export interface IPaymentUPdate extends IPayment {
 //     orderId: Types.ObjectId;
 // }
+
+
+export interface ISaveCard {
+    card_holder_name: string;
+    card_number: string;
+    expiry_month: string;
+    expiry_year: string;
+    cvv: string;
+    userId: Types.ObjectId;
+    isDeleted: boolean;
+}

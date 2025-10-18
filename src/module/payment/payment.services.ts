@@ -12,8 +12,18 @@ const createPaymentService = async (payload: IPayment) => {
     return { payment: newPayment };
 }
 
+const saveCardService = async (payload: ISaveCard) => {
+    const newCard = await Payment.create(payload)
+    if (!newCard) {
+        throw new AppError(httpStatus.NOT_FOUND, "Card not stored on database");
+    }
+
+    return { card: newCard };
+}
+
 const PaymentServices = {
-    createPaymentService
+    createPaymentService,
+    saveCardService
 }
 export default PaymentServices
 

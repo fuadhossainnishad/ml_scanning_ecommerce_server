@@ -13,7 +13,7 @@ const createPost: RequestHandler = catchAsync(async (req, res) => {
   if (req.user?.role !== "Brand" && req.user?.role !== "User") {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Brand is required",
+      "Authenticated user is required",
       ""
     );
   }
