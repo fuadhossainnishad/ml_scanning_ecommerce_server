@@ -7,5 +7,5 @@ const router = Router()
 router.post(
     '/payment',
     auth('User'),
-    OrderController.
+    OrderController.payment
 )

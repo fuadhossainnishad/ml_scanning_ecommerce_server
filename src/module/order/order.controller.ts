@@ -16,7 +16,7 @@ const payment: RequestHandler = catchAsync(async (req, res) => {
         success: true,
         statusCode: httpStatus.CREATED,
         message: "Successfully added to cart",
-        data: result,
+        data: "result",
     });
 })
 
