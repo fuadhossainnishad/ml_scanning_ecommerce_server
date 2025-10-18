@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+
 export type TCheckout = {
   carId: string;
   vendorId: string;

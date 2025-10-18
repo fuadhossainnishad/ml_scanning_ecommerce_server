@@ -6,34 +6,56 @@ import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
 import NotificationServices from "../notification/notification.service";
-import { IPost } from "../post/post.interface";
-import Post from "../post/post.model";
+import Admin from "../admin/admin.model";
+import { IFollow } from "./follow.interface";
+import Follow from "./follow.model";
 
-const createPost: RequestHandler = catchAsync(async (req, res) => {
-  if (req.user?.role !== "Brand") {
+const createFollow: RequestHandler = catchAsync(async (req, res) => {
+  if (!req.user) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Brand is required",
+      "Authenticated user is required",
       ""
     );
   }
-  const { _id, brandName, brandLogo } = req.user
+  const { _id, role } = req.user;
+  const { id } = req.params;
 
-  const { attachment, tags } = req.body.data;
-  if (!attachment || tags.lenght === 0) {
+  if (_id.toString() === id.toString()) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Attachment, Tags are required",
+      "You cannot follow yourself",
       ""
     );
   }
-  req.body.data.brandId = _id
-  req.body.data.brandName = brandName
-  req.body.data.brandLogo = brandLogo
 
-  const result = await GenericService.insertResources<IPost>(
-    Post,
-    req.body?.data
+  const findUser = await Admin.findOne({ _id: await idConverter(id) }, { role: 1 });
+
+  if (!findUser) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "User to follow not found",
+      ""
+    );
+  }
+
+  const data: IFollow = {
+    authorId: _id,
+    authorType: role,
+    following: [
+      {
+        id: await idConverter(id),
+        type: findUser.role!,
+      }
+    ],
+    isDeleted: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }
+
+  const result = await GenericService.insertResources<IFollow>(
+    Follow,
+    data
   );
 
   // await NotificationServices.sendNoification({
@@ -51,37 +73,37 @@ const createPost: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully added new Post",
+    message: "successfully add to Follow",
     data: result,
   });
 });
 
-const getPost: RequestHandler = catchAsync(async (req, res) => {
-  const { PostId } = req.body.data;
-  console.log("PostId: ", PostId);
+const getFollow: RequestHandler = catchAsync(async (req, res) => {
+  const { FollowId } = req.body.data;
+  console.log("FollowId: ", FollowId);
 
-  if (!PostId) {
+  if (!FollowId) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Post ID is required",
+      "Follow ID is required",
       ""
     );
   }
-  const result = await GenericService.findResources<IPost>(
-    Post,
-    await idConverter(PostId)
+  const result = await GenericService.findResources<IFollow>(
+    Follow,
+    await idConverter(FollowId)
   );
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully retrieve all Post data",
+    message: "successfully retrieve all Follow data",
     data: result,
   });
 });
 
-const getAllPost: RequestHandler = catchAsync(async (req, res) => {
-  const result = await GenericService.findAllResources<IPost>(
-    Post,
+const getAllFollow: RequestHandler = catchAsync(async (req, res) => {
+  const result = await GenericService.findAllResources<IFollow>(
+    Follow,
     req.query,
     []
   );
@@ -89,12 +111,12 @@ const getAllPost: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully retrieve post data",
+    message: "successfully retrieve Follow data",
     data: result,
   });
 });
 
-const updatePost: RequestHandler = catchAsync(async (req, res) => {
+const updateFollow: RequestHandler = catchAsync(async (req, res) => {
   // if (!req.user) {
   //   throw new AppError(httpStatus.UNAUTHORIZED, "Admin not authenticated", "");
   // }
@@ -107,8 +129,8 @@ const updatePost: RequestHandler = catchAsync(async (req, res) => {
   //       ? rawId[0]
   //       : undefined;
 
-  const result = await GenericService.updateResources<IPost>(
-    Post,
+  const result = await GenericService.updateResources<IFollow>(
+    Follow,
     await idConverter(id),
     req.body.data
   );
@@ -117,8 +139,8 @@ const updatePost: RequestHandler = catchAsync(async (req, res) => {
   //   ownerId: req.user?._id,
   //   key: "notification",
   //   data: {
-  //     id: result.Post?._id.toString(),
-  //     message: `An Post updated`,
+  //     id: result.Follow?._id.toString(),
+  //     message: `An Follow updated`,
   //   },
   //   receiverId: [req.user?._id],
   // });
@@ -126,12 +148,12 @@ const updatePost: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully updated Post ",
+    message: "successfully updated Follow ",
     data: result,
   });
 });
 
-const deletePost: RequestHandler = catchAsync(async (req, res) => {
+const deleteFollow: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Admin not authenticated", "");
   }
@@ -139,21 +161,21 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
   if (req.user?.role !== "Admin") {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      "Only admin can do update Post",
+      "Only admin can do update Follow",
       ""
     );
   }
-  const { PostId } = req.body.data;
-  const result = await GenericService.deleteResources<IPost>(
-    Post,
-    await idConverter(PostId)
+  const { FollowId } = req.body.data;
+  const result = await GenericService.deleteResources<IFollow>(
+    Follow,
+    await idConverter(FollowId)
   );
 
   await NotificationServices.sendNoification({
     ownerId: req.user?._id,
     key: "notification",
     data: {
-      message: `An Post deleted`,
+      message: `An Follow deleted`,
     },
     receiverId: [req.user?._id],
   });
@@ -161,17 +183,17 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully deleted Post",
+    message: "successfully deleted Follow",
     data: result,
   });
 });
 
-// const TrialPost: RequestHandler = catchAsync(async (req, res) => {
+// const TrialFollow: RequestHandler = catchAsync(async (req, res) => {
 //   const { role, email, id, stripe_customer_id } = req.user;
 //   if (role !== "User" || !email || !id) {
 //     throw new AppError(
 //       httpStatus.BAD_REQUEST,
-//       "Only valid user can have trial Post",
+//       "Only valid user can have trial Follow",
 //       ""
 //     );
 //   }
@@ -179,23 +201,23 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //     const customer_id = await StripeUtils.CreateCustomerId(email);
 //     req.user = await GenericService.updateResources<IUser>(User, id, { stripe_customer_id: customer_id })
 //   }
-//   const { PostPlan } = req.user
-//   if (PostPlan.subType !== "none" && !PostPlan.trialUsed) {
+//   const { FollowPlan } = req.user
+//   if (FollowPlan.subType !== "none" && !FollowPlan.trialUsed) {
 //     throw new AppError(
 //       httpStatus.BAD_REQUEST,
-//       "You have already used your trial Post",
+//       "You have already used your trial Follow",
 //       ""
 //     );
 //   }
 
-//   PostPlan.trial.start = new Date()
-//   PostPlan.trial.end = new Date(PostPlan.trial.start.getTime() + 30 * 24 * 60 * 60 * 1000)
+//   FollowPlan.trial.start = new Date()
+//   FollowPlan.trial.end = new Date(FollowPlan.trial.start.getTime() + 30 * 24 * 60 * 60 * 1000)
 
-//   const result = await PostServices.trialService<IUser & { _id: Types.ObjectId }>(req.user)
-//   PostPlan.trial.stripe_Post_id = result
-//   PostPlan.subType = SubType.TRIAL
-//   PostPlan.trial.active = true
-//   PostPlan.isActive = true
+//   const result = await FollowServices.trialService<IUser & { _id: Types.ObjectId }>(req.user)
+//   FollowPlan.trial.stripe_Follow_id = result
+//   FollowPlan.subType = SubType.TRIAL
+//   FollowPlan.trial.active = true
+//   FollowPlan.isActive = true
 //   req.user.sub_status = SubStatus.ACTIVE
 
 //   const updateUser = await GenericService.updateResources<IUser>(User, id, req.user)
@@ -203,26 +225,26 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //   sendResponse(res, {
 //     success: true,
 //     statusCode: httpStatus.CREATED,
-//     message: "successfully get trial Post",
+//     message: "successfully get trial Follow",
 //     data: updateUser,
 //   });
 // })
 
-// const PaidPost: RequestHandler = catchAsync(async (req, res) => {
+// const PaidFollow: RequestHandler = catchAsync(async (req, res) => {
 //   const { role, email, id, stripe_customer_id } = req.user;
-//   const { PostId } = req.body.data
+//   const { FollowId } = req.body.data
 
 //   if (role !== "User" || !email || !id) {
 //     throw new AppError(
 //       httpStatus.BAD_REQUEST,
-//       "Only valid user can have paid Post",
+//       "Only valid user can have paid Follow",
 //     );
 //   }
 
-//   if (!PostId) {
+//   if (!FollowId) {
 //     throw new AppError(
 //       httpStatus.BAD_REQUEST,
-//       "select a Post",
+//       "select a Follow",
 //     );
 //   }
 
@@ -231,35 +253,35 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //     req.user = await GenericService.updateResources<IUser>(User, id, { stripe_customer_id: customer_id })
 //   }
 
-//   // const { PostPlan } = req.user
-//   // if (PostPlan.subType === "paid" && PostPlan.paid.status === "active") {
+//   // const { FollowPlan } = req.user
+//   // if (FollowPlan.subType === "paid" && FollowPlan.paid.status === "active") {
 //   //   throw new AppError(
 //   //     httpStatus.BAD_REQUEST,
-//   //     "You have already used your paid Post",
+//   //     "You have already used your paid Follow",
 //   //     ""
 //   //   );
 //   // }
 
-//   const Post = await GenericService.findResources<IPost>(Post, await idConverter(PostId))
+//   const Follow = await GenericService.findResources<IFollow>(Follow, await idConverter(FollowId))
 
 //   const paymentIntent = await StripeServices.createPaymentIntentService({
 //     userId: req.user._id.toString(),
 //     stripe_customer_id: req.user.stripe_customer_id,
-//     PostId: PostId,
-//     amount: Post[0].price,
+//     FollowId: FollowId,
+//     amount: Follow[0].price,
 //     currency: 'usd'
 //   })
 
 //   sendResponse(res, {
 //     success: true,
 //     statusCode: httpStatus.CONTINUE,
-//     message: "please complete your payment to activate paid Post",
+//     message: "please complete your payment to activate paid Follow",
 //     data: paymentIntent,
 //   });
 // })
 
 // const Webhook: RequestHandler = catchAsync(async (req, res) => {
-//   const { _id, stripe_customer_id, PostPlan } = req.user
+//   const { _id, stripe_customer_id, FollowPlan } = req.user
 //   const sig = req.headers["stripe-signature"] as string;
 //   const rawbody = req.body.data
 
@@ -268,14 +290,14 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //     rawbody,
 //   });
 
-//   const { orderid, PostId } = paymentIntent.metadata
+//   const { orderid, FollowId } = paymentIntent.metadata
 
 //   const paymentPayload: IPayment = {
 //     orderId: await idConverter(orderid),
 //     userId: _id,
 //     stripeCustomerId: stripe_customer_id,
 //     paymentIntentId: paymentIntent.id,
-//     PostId: await idConverter(PostId),
+//     FollowId: await idConverter(FollowId),
 //     amount: paymentIntent.amount_received / 100,
 //     currency: paymentIntent.currency,
 //     payment_method: paymentIntent.payment_method_types[0],
@@ -285,17 +307,17 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 
 //   const insertPayment = await GenericService.insertResources<IPayment>(Payment, paymentPayload)
 
-//   PostPlan.paid.Post_id = await idConverter(PostId)
-//   PostPlan.paid.status = PaidStatus.ACTIVE
-//   PostPlan.paid.start = new Date()
-//   PostPlan.paid.end = new Date(PostPlan.paid.start.getTime() + PostPlan.paid.length * 24 * 60 * 60 * 1000)
-//   PostPlan.subType = SubType.PAID
-//   PostPlan.isActive = true
+//   FollowPlan.paid.Follow_id = await idConverter(FollowId)
+//   FollowPlan.paid.status = PaidStatus.ACTIVE
+//   FollowPlan.paid.start = new Date()
+//   FollowPlan.paid.end = new Date(FollowPlan.paid.start.getTime() + FollowPlan.paid.length * 24 * 60 * 60 * 1000)
+//   FollowPlan.subType = SubType.PAID
+//   FollowPlan.isActive = true
 //   req.user.sub_status = SubStatus.ACTIVE
 
 //   await GenericService.updateResources<IUser>(User, _id, req.user)
 
-//   // const updateOrderStatus = await Post.findByIdAndUpdate(
+//   // const updateOrderStatus = await Follow.findByIdAndUpdate(
 //   //   await idConverter(orderId),
 //   //   { status: "accept" },
 //   //   { new: true }
@@ -310,20 +332,20 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
 //   sendResponse(res, {
 //     success: true,
 //     statusCode: httpStatus.CREATED,
-//     message: "success fully paid your Post",
+//     message: "success fully paid your Follow",
 //     data: insertPayment,
 //   });
 // });
 
-const PostController = {
-  createPost,
-  getPost,
-  getAllPost,
-  updatePost,
-  deletePost,
-  // TrialPost,
-  // PaidPost,
+const FollowController = {
+  createFollow,
+  getFollow,
+  getAllFollow,
+  updateFollow,
+  deleteFollow,
+  // TrialFollow,
+  // PaidFollow,
   // Webhook
 };
 
-export default PostController;
+export default FollowController;

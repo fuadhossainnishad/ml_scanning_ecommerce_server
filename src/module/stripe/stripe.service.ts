@@ -1,7 +1,7 @@
 import httpStatus from "http-status";
 import stripe from "../../app/config/stripe.config";
 import AppError from "../../app/error/AppError";
-import { ICreateFreeSubscription, IPaymentIntent, IWebhooks } from "./stripe.interface";
+import { IPaymentIntent, IWebhooks } from "./stripe.interface";
 import { ISubscription } from "../subscription/subscription.interface";
 import config from "../../app/config";
 import Stripe from "stripe";
@@ -55,19 +55,6 @@ const createStripePriceId = async (payload: ISubscription): Promise<string> => {
   return stripe_price.id
 }
 
-const createSubscription = async (payload: ICreateFreeSubscription) => {
-  const stripeSubscription = await stripe.subscriptions.create({
-    customer: payload.stripe_customer_id,
-    items: [],
-    trial_end: Math.floor(payload.trialEnd.getTime() / 1000),
-    metadata: { id: payload._id.toString() },
-  })
-  if (!stripeSubscription || !stripeSubscription.id) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Something error happened, try again later")
-  }
-  return stripeSubscription.id;
-}
-
 export const handleStripeWebhook = async (payload: IWebhooks) => {
   const { rawbody, sig } = payload;
   const event = stripe.webhooks.constructEvent(
@@ -92,7 +79,6 @@ const StripeServices = {
   createPaymentIntentService,
   createStripeProductId,
   createStripePriceId,
-  createSubscription,
   handleStripeWebhook
 };
 export default StripeServices;

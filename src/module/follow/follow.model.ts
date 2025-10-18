@@ -1,6 +1,19 @@
 import { model, Model, Schema } from "mongoose";
 import MongooseHelper from "../../utility/mongoose.helpers";
-import { IFollow } from './follow.interface';
+import { IFollow, IFollowBase } from "./follow.interface";
+
+const FollowBaseSchema: Schema = new Schema<IFollowBase>({
+  id: {
+    type: Schema.Types.ObjectId,
+    refPath: 'type',
+    required: true
+  },
+  type: {
+    type: String,
+    required: true,
+    enum: ['User', 'Brand', 'Admin']
+  },
+})
 
 const FollowSchema: Schema = new Schema<IFollow>({
   authorId: {
@@ -13,21 +26,12 @@ const FollowSchema: Schema = new Schema<IFollow>({
     required: true,
     enum: ['User', 'Brand', 'Admin']
   },
-  followerId: {
-    type: [Schema.Types.ObjectId],
-    refPath: 'FolloworType',
-    required: true
-  },
-  followerType: {
-    type: String,
-    required: true,
-    enum: ['User', 'Brand', 'Admin']
-  },
-  totalFollower: {
+  following: [FollowBaseSchema],
+  totalFollowing: {
     type: Number,
-    required: true,
+    required: false,
     default: function (this: IFollow) {
-      return this.followerId.length
+      return this.following.length
     }
   },
   isDeleted: {

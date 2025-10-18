@@ -1,43 +1,30 @@
 import express from "express";
 import auth from "../../middleware/auth";
-import PostController from "./follow.controller";
-import { upload } from "../../middleware/multer/multer";
-import { fileHandle } from "../../middleware/fileHandle";
+import FollowController from "./follow.controller";
 
 const router = express.Router();
 
 router
   .route("/")
-  .post(
-    auth("Brand"),
-    upload.fields([{ name: "attachement", maxCount: 1 }]),
-    fileHandle("attachement"),
-    PostController.createPost
-  )
   .get(
     auth("User", "Brand"),
-    PostController.getAllPost
+    FollowController.getAllFollow
   )
 
 router
   .route("/:id")
+  .post(
+    auth("User", "Brand"),
+    FollowController.createFollow
+  )
   .patch(
-    auth("Brand"),
-    upload.fields([{ name: "attachement", maxCount: 1 }]),
-    fileHandle("attachement"),
-    PostController.deletePost
+    auth("User", "Brand"),
+    FollowController.updateFollow
   )
   .delete(
-    auth("Brand"),
-    PostController.deletePost
+    auth("User", "Brand"),
+    FollowController.deleteFollow
   )
 
-// router.post(
-//   "/webhook",
-//   express.raw({ type: "applicaton/json" }),
-//   //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-//   PostController.Webhook
-// );
-
-const ReactRouter = router;
-export default ReactRouter;
+const FollowRouter = router;
+export default FollowRouter;

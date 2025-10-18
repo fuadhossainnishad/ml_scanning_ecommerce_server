@@ -9,7 +9,6 @@ import { ICart } from "./cart.interface";
 import { idConverter } from "../../utility/idConverter";
 import QueryBuilder from "../../app/builder/QueryBuilder";
 import CartServices from "./cart.services";
-import { STATUS_CODES } from "http";
 
 const uploadCart: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {

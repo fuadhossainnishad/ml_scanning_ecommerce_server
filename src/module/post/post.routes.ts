@@ -15,7 +15,7 @@ router
     PostController.createPost
   )
   .get(
-    // auth("User", "Brand"),
+    auth("User", "Brand"),
     PostController.getAllPost
   )
 

@@ -1,11 +1,15 @@
 import { Types } from "mongoose";
 
+export interface IFollowBase {
+  id: Types.ObjectId
+  type: string
+}
+
 export interface IFollow {
   authorId: Types.ObjectId
   authorType: string
-  followerId: Types.ObjectId[]
-  followerType: string
-  totalFollower: number
+  following: IFollowBase[]
+  totalFollowing?: number
   isDeleted: boolean
   createdAt: Date
   updatedAt: Date

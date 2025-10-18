@@ -82,6 +82,15 @@ const getPost: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const getAllPost: RequestHandler = catchAsync(async (req, res) => {
+
+  if (!req.user) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Authenticated user is required",
+      ""
+    );
+  }
+
   const result = await GenericService.findAllResources<IPost>(
     Post,
     req.query,
