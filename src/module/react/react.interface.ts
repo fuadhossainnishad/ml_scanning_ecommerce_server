@@ -2,9 +2,8 @@ import { Types } from "mongoose";
 
 export interface IReact {
   postId: Types.ObjectId
-  reactorId: Types.ObjectId[]
+  reactorId: Types.ObjectId
   reactorType: string
-  totalReact: number
   isDeleted: boolean
   createdAt: Date
   updatedAt: Date

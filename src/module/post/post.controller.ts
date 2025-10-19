@@ -8,6 +8,7 @@ import { idConverter } from "../../utility/idConverter";
 import NotificationServices from "../notification/notification.service";
 import { IPost } from "./post.interface";
 import Post from "./post.model";
+import PostServices from "./post.services";
 
 const createPost: RequestHandler = catchAsync(async (req, res) => {
   if (req.user?.role !== "Brand" && req.user?.role !== "User") {
@@ -91,11 +92,7 @@ const getAllPost: RequestHandler = catchAsync(async (req, res) => {
     );
   }
 
-  const result = await GenericService.findAllResources<IPost>(
-    Post,
-    req.query,
-    []
-  );
+  const result = await PostServices.getPostService(req);
 
   sendResponse(res, {
     success: true,

@@ -9,17 +9,11 @@ const ReactSchema: Schema = new Schema<IReact>({
     required: true
   },
   reactorId: {
-    type: [Schema.Types.ObjectId],
+    type: Schema.Types.ObjectId,
     refPath: 'reactorType',
     required: true
   },
-  totalReact: {
-    type: Number,
-    required: true,
-    default: function (this: IReact) {
-      return this.reactorId.length
-    }
-  },
+
   reactorType: {
     type: String,
     required: true,

@@ -1,23 +1,19 @@
 import express from "express";
 import auth from "../../middleware/auth";
-import PostController from "./react.controller";
 import { upload } from "../../middleware/multer/multer";
 import { fileHandle } from "../../middleware/fileHandle";
+import ReactController from "./react.controller";
 
 const router = express.Router();
 
 router
+  .route("/:posId")
+  .post(auth("Brand", "User"), ReactController.createReact)
+
+
+router
   .route("/")
-  .post(
-    auth("Brand"),
-    upload.fields([{ name: "attachement", maxCount: 1 }]),
-    fileHandle("attachement"),
-    PostController.createPost
-  )
-  .get(
-    auth("User", "Brand"),
-    PostController.getAllPost
-  )
+  .get(auth("User", "Brand"), ReactController.createReact);
 
 router
   .route("/:id")
@@ -25,19 +21,9 @@ router
     auth("Brand"),
     upload.fields([{ name: "attachement", maxCount: 1 }]),
     fileHandle("attachement"),
-    PostController.deletePost
+    ReactController.createReact
   )
-  .delete(
-    auth("Brand"),
-    PostController.deletePost
-  )
-
-// router.post(
-//   "/webhook",
-//   express.raw({ type: "applicaton/json" }),
-//   //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-//   PostController.Webhook
-// );
+  .delete(auth("Brand"), ReactController.createReact);
 
 const ReactRouter = router;
 export default ReactRouter;
