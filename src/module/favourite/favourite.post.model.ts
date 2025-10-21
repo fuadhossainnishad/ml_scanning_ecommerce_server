@@ -1,8 +1,8 @@
 import { model, Model, Schema } from "mongoose";
 import MongooseHelper from "../../utility/mongoose.helpers";
-import { IFavouritePost } from './favourite.interface';
+import { IFavourite, IFavouritePost } from './favourite.interface';
 
-const favouritePostSchema: Schema = new Schema<IFavouritePost>({
+export const FavouriteSchema: Schema = new Schema<IFavourite>({
 
   ownerId: {
     type: Schema.Types.ObjectId,
@@ -14,27 +14,40 @@ const favouritePostSchema: Schema = new Schema<IFavouritePost>({
     required: true,
     enum: ['User', 'Brand', 'Admin']
   },
-  postId: {
-    type: [Schema.Types.ObjectId],
-    ref: 'Post',
-    required: true
-  },
   isDeleted: {
     type: Boolean,
     default: false
   }
 },
-  { timestamps: true }
 )
 
+const FavouritePostSchema = new Schema<IFavouritePost>({
+  postId: {
+    type: Schema.Types.ObjectId,
+    ref: 'Post',
+    required: true
+  },
+},
+  { timestamps: true }
+).add(FavouriteSchema)
 
-MongooseHelper.findExistence<IFavouritePost>(favouritePostSchema);
-MongooseHelper.applyToJSONTransform(favouritePostSchema);
+
+
+
+
+MongooseHelper.findExistence<IFavouritePost>(FavouritePostSchema);
+MongooseHelper.applyToJSONTransform(FavouritePostSchema);
+
+
 
 const FavouritePost: Model<IFavouritePost> = model<IFavouritePost>(
   "FavouritePost",
-  favouritePostSchema
+  FavouritePostSchema
 );
+
+
+
+
 export default FavouritePost;
 
 

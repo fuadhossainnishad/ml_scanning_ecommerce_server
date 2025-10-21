@@ -12,7 +12,7 @@ router
   )
 
 router
-  .route("/:postId")
+  .route("/:id")
   .post(
     auth("Brand", "User"),
     SavePostController.createSavePost

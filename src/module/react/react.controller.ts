@@ -18,48 +18,51 @@ const createReact: RequestHandler = catchAsync(async (req, res) => {
     );
   }
   const { _id, role } = req.user
-  const { postId } = req.params
+  const { id } = req.params
 
-  if (!postId) {
+  if (!id) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "PostId is required",
       ""
     );
   }
-  const postObjectId = await idConverter(postId)
+  const postObjectId = await idConverter(id)
   let result
 
-  const exist = await React.findOne({
-    postId: await idConverter(postId),
+  const exist = await React.findOne<IReact>({
+    postId: postObjectId,
     reactorId: _id,
     reactorType: role,
   })
 
   if (exist) {
-    result = await React.findOneAndUpdate(
-      { postId: postObjectId, reactorId: _id, reactorType: role, isDeleted: false },
-      { $set: { isDeleted: true, updatedAt: new Date() } },
-      { new: true }
-    );
-    return sendResponse(res, {
-      success: true,
-      statusCode: httpStatus.OK,
-      message: "Reaction removed successfully",
-      data: { isReacted: false },
-    });
-  } else if (exist && !exist.isDeleted) {
-    result = await React.findOneAndUpdate(
-      { postId: postObjectId, reactorId: _id, reactorType: role, isDeleted: true },
-      { $set: { isDeleted: false, updatedAt: new Date() } },
-      { new: true }
-    );
-    return sendResponse(res, {
-      success: true,
-      statusCode: httpStatus.OK,
-      message: "Reaction removed successfully",
-      data: { isReacted: false },
-    });
+    if (!exist.isDeleted) {
+      result = await React.findOneAndUpdate(
+        { postId: postObjectId, reactorId: _id, reactorType: role, isDeleted: false },
+        { $set: { isDeleted: true, updatedAt: new Date() } },
+        { new: true }
+      );
+      return sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Reaction removed successfully",
+        data: { isReacted: false },
+      });
+    }
+    else {
+      result = await React.findOneAndUpdate(
+        { postId: postObjectId, reactorId: _id, reactorType: role, isDeleted: true },
+        { $set: { isDeleted: false, updatedAt: new Date() } },
+        { new: true }
+      );
+      return sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Reaction added successfully",
+        data: { isReacted: true },
+      });
+    }
   } else {
     const data: IReact = {
       postId: postObjectId,

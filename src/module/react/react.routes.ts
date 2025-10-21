@@ -7,16 +7,13 @@ import ReactController from "./react.controller";
 const router = express.Router();
 
 router
-  .route("/:posId")
-  .post(auth("Brand", "User"), ReactController.createReact)
-
-
-router
   .route("/")
-  .get(auth("User", "Brand"), ReactController.createReact);
+  .get(auth("User", "Brand"), ReactController.getAllReact
+  );
 
 router
   .route("/:id")
+  .post(auth("Brand", "User"), ReactController.createReact)
   .patch(
     auth("Brand"),
     upload.fields([{ name: "attachement", maxCount: 1 }]),

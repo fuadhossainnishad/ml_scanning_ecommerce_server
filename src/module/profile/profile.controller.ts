@@ -3,6 +3,7 @@ import AppError from "../../app/error/AppError";
 import httpStatus from 'http-status';
 import catchAsync from "../../utility/catchAsync";
 import sendResponse from "../../utility/sendResponse";
+import ProfileServices from "./profile.services";
 
 const getProfile: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
@@ -13,18 +14,18 @@ const getProfile: RequestHandler = catchAsync(async (req, res) => {
         );
     }
 
-    const { _id, role } = req.user
-
-
+    const result = await ProfileServices.getProfile(req)
 
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,
         message: "successfully retrieve profile data",
-        data: "result",
+        data: result,
     });
 }
 )
+
+
 
 
 const ProfileController = {

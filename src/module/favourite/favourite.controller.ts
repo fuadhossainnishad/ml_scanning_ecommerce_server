@@ -11,6 +11,8 @@ import Post from "../post/post.model";
 import { IFavouritePost, IFavouriteProduct } from "./favourite.interface";
 import FavouritePost from "./favourite.post.model";
 import FavouriteProduct from "./favourite.product.model";
+import AggregationQueryBuilder from "../../app/builder/Builder";
+import { buildMeta } from "../stats/stats.services";
 
 const createFavouritePost: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
@@ -34,7 +36,7 @@ const createFavouritePost: RequestHandler = catchAsync(async (req, res) => {
   const data: IFavouritePost = {
     ownerId: _id,
     ownerType: role,
-    postId: [await idConverter(req.params.id)],
+    postId: await idConverter(req.params.id),
     isDeleted: false,
     createdAt: new Date(),
     updatedAt: new Date()
@@ -86,7 +88,7 @@ const createFavouriteProduct: RequestHandler = catchAsync(async (req, res) => {
   const data: IFavouriteProduct = {
     ownerId: _id,
     ownerType: role,
-    productId: [await idConverter(req.params.id)],
+    productId: await idConverter(req.params.id),
     isDeleted: false,
     createdAt: new Date(),
     updatedAt: new Date()
@@ -176,20 +178,68 @@ const getAllFavouriteProduct: RequestHandler = catchAsync(async (req, res) => {
   }
   const query = {
     ...req?.query,
-    ownerId: req.user?._id.toString()
+    ownerId: req.user?._id,
+    ownerType: req.user.role
   }
 
-  const result = await GenericService.findAllResources<IFavouriteProduct>(
-    FavouriteProduct,
-    query,
-    []
-  );
+  const builder = new AggregationQueryBuilder(FavouriteProduct, query);
+
+  builder.filter();
+  builder.search([]);
+
+  builder.addStages([
+    { $unwind: "$productId" },
+    {
+      $lookup: {
+        from: "products",
+        localField: "productId",
+        foreignField: "_id",
+        as: "product",
+      },
+    },
+    {
+      $unwind: {
+        path: "$product",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        updatedAt: 0,
+        isDeleted: 0,
+        "product.stripe_product_id": 0,
+        "product.stripe_price_id": 0,
+        "product.__v": 0,
+        "product.totalQuantity": 0,
+        "product.saleTag": 0,
+        // "product.category": 1,
+        // "product.productImages": 1,
+        // "product.colors": 1,
+        // "product.inStock": 1,
+      },
+    },
+  ]);
+
+  builder.sort();
+  builder.fields();
+
+  const meta = await builder.countTotal();
+
+  console.log("post query:", builder.getMatchObj());
+
+  const data = await builder.execute();
+
+
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
     message: "successfully retrieve favourite product data",
-    data: result,
+    data: {
+      meta: buildMeta(meta.page, meta.limit, meta.total), // Assuming buildMeta takes page, limit, total
+      data,
+    }
   });
 });
 
@@ -265,154 +315,6 @@ const deleteFavourite: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
-// const TrialPost: RequestHandler = catchAsync(async (req, res) => {
-//   const { role, email, id, stripe_customer_id } = req.user;
-//   if (role !== "User" || !email || !id) {
-//     throw new AppError(
-//       httpStatus.BAD_REQUEST,
-//       "Only valid user can have trial Post",
-//       ""
-//     );
-//   }
-//   if (stripe_customer_id == "") {
-//     const customer_id = await StripeUtils.CreateCustomerId(email);
-//     req.user = await GenericService.updateResources<IUser>(User, id, { stripe_customer_id: customer_id })
-//   }
-//   const { PostPlan } = req.user
-//   if (PostPlan.subType !== "none" && !PostPlan.trialUsed) {
-//     throw new AppError(
-//       httpStatus.BAD_REQUEST,
-//       "You have already used your trial Post",
-//       ""
-//     );
-//   }
-
-//   PostPlan.trial.start = new Date()
-//   PostPlan.trial.end = new Date(PostPlan.trial.start.getTime() + 30 * 24 * 60 * 60 * 1000)
-
-//   const result = await PostServices.trialService<IUser & { _id: Types.ObjectId }>(req.user)
-//   PostPlan.trial.stripe_Post_id = result
-//   PostPlan.subType = SubType.TRIAL
-//   PostPlan.trial.active = true
-//   PostPlan.isActive = true
-//   req.user.sub_status = SubStatus.ACTIVE
-
-//   const updateUser = await GenericService.updateResources<IUser>(User, id, req.user)
-
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.CREATED,
-//     message: "successfully get trial Post",
-//     data: updateUser,
-//   });
-// })
-
-// const PaidPost: RequestHandler = catchAsync(async (req, res) => {
-//   const { role, email, id, stripe_customer_id } = req.user;
-//   const { PostId } = req.body.data
-
-//   if (role !== "User" || !email || !id) {
-//     throw new AppError(
-//       httpStatus.BAD_REQUEST,
-//       "Only valid user can have paid Post",
-//     );
-//   }
-
-//   if (!PostId) {
-//     throw new AppError(
-//       httpStatus.BAD_REQUEST,
-//       "select a Post",
-//     );
-//   }
-
-//   if (stripe_customer_id == "") {
-//     const customer_id = await StripeUtils.CreateCustomerId(email);
-//     req.user = await GenericService.updateResources<IUser>(User, id, { stripe_customer_id: customer_id })
-//   }
-
-//   // const { PostPlan } = req.user
-//   // if (PostPlan.subType === "paid" && PostPlan.paid.status === "active") {
-//   //   throw new AppError(
-//   //     httpStatus.BAD_REQUEST,
-//   //     "You have already used your paid Post",
-//   //     ""
-//   //   );
-//   // }
-
-//   const Post = await GenericService.findResources<IPost>(Post, await idConverter(PostId))
-
-//   const paymentIntent = await StripeServices.createPaymentIntentService({
-//     userId: req.user._id.toString(),
-//     stripe_customer_id: req.user.stripe_customer_id,
-//     PostId: PostId,
-//     amount: Post[0].price,
-//     currency: 'usd'
-//   })
-
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.CONTINUE,
-//     message: "please complete your payment to activate paid Post",
-//     data: paymentIntent,
-//   });
-// })
-
-// const Webhook: RequestHandler = catchAsync(async (req, res) => {
-//   const { _id, stripe_customer_id, PostPlan } = req.user
-//   const sig = req.headers["stripe-signature"] as string;
-//   const rawbody = req.body.data
-
-//   const { paymentIntent } = await handleStripeWebhook({
-//     sig,
-//     rawbody,
-//   });
-
-//   const { orderid, PostId } = paymentIntent.metadata
-
-//   const paymentPayload: IPayment = {
-//     orderId: await idConverter(orderid),
-//     userId: _id,
-//     stripeCustomerId: stripe_customer_id,
-//     paymentIntentId: paymentIntent.id,
-//     PostId: await idConverter(PostId),
-//     amount: paymentIntent.amount_received / 100,
-//     currency: paymentIntent.currency,
-//     payment_method: paymentIntent.payment_method_types[0],
-//     payStatus: true,
-//     isDeleted: false
-//   }
-
-//   const insertPayment = await GenericService.insertResources<IPayment>(Payment, paymentPayload)
-
-//   PostPlan.paid.Post_id = await idConverter(PostId)
-//   PostPlan.paid.status = PaidStatus.ACTIVE
-//   PostPlan.paid.start = new Date()
-//   PostPlan.paid.end = new Date(PostPlan.paid.start.getTime() + PostPlan.paid.length * 24 * 60 * 60 * 1000)
-//   PostPlan.subType = SubType.PAID
-//   PostPlan.isActive = true
-//   req.user.sub_status = SubStatus.ACTIVE
-
-//   await GenericService.updateResources<IUser>(User, _id, req.user)
-
-//   // const updateOrderStatus = await Post.findByIdAndUpdate(
-//   //   await idConverter(orderId),
-//   //   { status: "accept" },
-//   //   { new: true }
-//   // );
-//   // if (!updateOrderStatus) {
-//   //   throw new AppError(
-//   //     httpStatus.NOT_FOUND,
-//   //     "Order status not updated to accept due to some issue"
-//   //   );
-//   // }
-
-//   sendResponse(res, {
-//     success: true,
-//     statusCode: httpStatus.CREATED,
-//     message: "success fully paid your Post",
-//     data: insertPayment,
-//   });
-// });
 
 const FavouriteController = {
   createFavouritePost,

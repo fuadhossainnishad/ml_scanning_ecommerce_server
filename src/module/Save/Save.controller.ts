@@ -12,38 +12,75 @@ import SavePost from "./Save.model";
 import { ISavePost } from "./Save.interface";
 
 const createSavePost: RequestHandler = catchAsync(async (req, res) => {
-  const { postId } = req.params
-
-  if (!postId) {
+  if (!req.user) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "Post ID is required",
-      ""
-    );
-  }
-
-  if (req.user?.role !== "Brand" && req.user.role !== "User") {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "User/Brand is required",
+      "Authenticated user is required",
       ""
     );
   }
   const { _id, role } = req.user
-  const data: ISavePost = {
+  const { id } = req.params
+
+  if (!id) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "PostId is required",
+      ""
+    );
+  }
+  const postObjectId = await idConverter(id)
+  let result
+
+  const exist = await SavePost.findOne<ISavePost>({
+    postId: postObjectId,
     saverId: _id,
     saverType: role,
-    postId: [await idConverter(postId)],
-    isDeleted: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+  })
+
+  if (exist) {
+    if (!exist.isDeleted) {
+      result = await SavePost.findOneAndUpdate(
+        { postId: postObjectId, saverId: _id, saverType: role, isDeleted: false },
+        { $set: { isDeleted: true, updatedAt: new Date() } },
+        { new: true }
+      );
+      return sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Successfully remove this post from lookbook",
+        data: { isSaved: false },
+      });
+    }
+    else {
+      result = await SavePost.findOneAndUpdate(
+        { postId: postObjectId, saverId: _id, saverType: role, isDeleted: true },
+        { $set: { isDeleted: false, updatedAt: new Date() } },
+        { new: true }
+      );
+      return sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Successfully save this post to lookbook",
+        data: { isSaved: true },
+      });
+    }
+  } else {
+    const data: ISavePost = {
+      postId: postObjectId,
+      saverId: _id,
+      saverType: role,
+      isDeleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    result = await SavePost.findOneAndUpdate(
+      { postId: postObjectId, saverId: _id, saverType: role },
+      { $set: { ...data, updatedAt: new Date() }, $setOnInsert: { createdAt: new Date() } },
+      { upsert: true, new: true }
+    );
   }
-
-  const result = await GenericService.insertResources<ISavePost>(
-    SavePost,
-    data
-  );
-
   // await NotificationServices.sendNoification({
   //   ownerId: req.user?._id,
   //   key: "notification",
@@ -59,10 +96,62 @@ const createSavePost: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: "successfully added new Post",
+    message: "Successfully save this post to lookbook",
     data: result,
   });
 });
+// const createSavePost: RequestHandler = catchAsync(async (req, res) => {
+//   const { postId } = req.params
+
+//   if (!postId) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       "Post ID is required",
+//       ""
+//     );
+//   }
+
+//   if (req.user?.role !== "Brand" && req.user.role !== "User") {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       "User/Brand is required",
+//       ""
+//     );
+//   }
+//   const { _id, role } = req.user
+//   const data: ISavePost = {
+//     saverId: _id,
+//     saverType: role,
+//     postId: await idConverter(postId),
+//     isDeleted: false,
+//     createdAt: new Date(),
+//     updatedAt: new Date(),
+//   }
+
+//   const result = await GenericService.insertResources<ISavePost>(
+//     SavePost,
+//     data
+//   );
+
+//   // await NotificationServices.sendNoification({
+//   //   ownerId: req.user?._id,
+//   //   key: "notification",
+//   //   data: {
+//   //     id: result.Subsciption?._id.toString(),
+//   //     message: `New subsciption added`,
+//   //   },
+//   //   receiverId: [req.user?._id],
+//   // });
+
+
+
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.CREATED,
+//     message: "successfully added new Post",
+//     data: result,
+//   });
+// });
 
 const getSavePost: RequestHandler = catchAsync(async (req, res) => {
   const { PostId } = req.body.data;

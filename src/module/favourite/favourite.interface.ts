@@ -1,25 +1,21 @@
 import { Types } from "mongoose";
 
-export interface IFavouritePost {
+export interface IFavourite {
   ownerId: Types.ObjectId
   ownerType: string
-  postId: Types.ObjectId[]
   isDeleted: boolean
   createdAt: Date
   updatedAt: Date
 }
-
+export interface IFavouritePost extends IFavourite {
+  postId: Types.ObjectId
+}
 export type TUpdateFavouritePost = Partial<IFavouritePost> & {
   _id: Types.ObjectId
 }
 
-export interface IFavouriteProduct {
-  ownerId: Types.ObjectId
-  ownerType: string
-  productId: Types.ObjectId[]
-  isDeleted: boolean
-  createdAt: Date
-  updatedAt: Date
+export interface IFavouriteProduct extends IFavourite {
+  productId: Types.ObjectId
 }
 
 export type TUpdateFavouriteProduct = Partial<IFavouriteProduct> & {

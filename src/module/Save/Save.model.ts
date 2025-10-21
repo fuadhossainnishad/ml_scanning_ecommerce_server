@@ -15,7 +15,7 @@ const SavePostSchema: Schema = new Schema<ISavePost>({
     enum: ['User', 'Brand', 'Admin']
   },
   postId: {
-    type: [Schema.Types.ObjectId],
+    type: Schema.Types.ObjectId,
     ref: 'Post',
     required: true
   },

@@ -9,7 +9,7 @@ const router = express.Router();
 router
   .route("/")
   .get(
-    auth("Admin"),
+    auth("User"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     UserController.getUser
   )

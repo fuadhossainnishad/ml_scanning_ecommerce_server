@@ -55,3 +55,4 @@ export interface IProduct {
 export type TUpdateProduct = Partial<IProduct> & {
   id: Types.ObjectId
 }
+

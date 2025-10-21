@@ -3,7 +3,7 @@ import { Types } from "mongoose";
 export interface ISavePost {
   saverId: Types.ObjectId
   saverType: string
-  postId: Types.ObjectId[]
+  postId: Types.ObjectId
   isDeleted: boolean
   createdAt: Date
   updatedAt: Date
