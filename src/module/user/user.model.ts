@@ -17,7 +17,11 @@ export const UserSchema: Schema = new Schema<IUser>(
     favouriteStyles: [{
       type: String,
       default: '',
-    }]
+    }],
+    theme: {
+      type: String,
+      default: '',
+    },
   },
   { timestamps: true, collection: "users" }
 )

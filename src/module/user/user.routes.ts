@@ -36,6 +36,8 @@ router
     auth("Admin", "User"),
     upload.fields([{ name: "profile", maxCount: 1 }]),
     fileHandle("profile"),
+    upload.fields([{ name: "coverPhoto", maxCount: 1 }]),
+    fileHandle("coverPhoto"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     UserController.updateUser
   );
