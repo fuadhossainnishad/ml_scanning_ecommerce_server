@@ -69,7 +69,7 @@ const updateResources = async <T>(
   if (!updateResource) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `Id:${updateId} of ${Model.modelName} not found`
+      `Id:${updateId} of ${Model.modelName} not updated`
     );
   }
 

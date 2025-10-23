@@ -24,6 +24,8 @@ export const fileHandle = (fieldName: string): RequestHandler =>
     ];
     if (!files || files.length === 0) {
       req.body.data[`${fieldName}Urls`] = [];
+          console.log("No file");
+
       return next();
     }
     const fileList = [];
@@ -36,5 +38,7 @@ export const fileHandle = (fieldName: string): RequestHandler =>
       fileList.push(url);
     }
     req.body.data[`${fieldName}`] = fileList;
+    console.log("parsed data:",req.body.data);
+    
     next();
   });

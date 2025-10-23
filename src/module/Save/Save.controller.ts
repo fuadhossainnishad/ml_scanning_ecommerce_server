@@ -10,6 +10,7 @@ import { IPost } from "../post/post.interface";
 import Post from "../post/post.model";
 import SavePost from "./Save.model";
 import { ISavePost } from "./Save.interface";
+import SavePostServices from "./Save.services";
 
 const createSavePost: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
@@ -184,16 +185,8 @@ const getAllSavePost: RequestHandler = catchAsync(async (req, res) => {
       ""
     );
   }
-  const query = {
-    ...req?.query,
-    saverId: req.user?._id.toString()
-  }
 
-  const result = await GenericService.findAllResources<ISavePost>(
-    SavePost,
-    query,
-    []
-  );
+  const result = await SavePostServices.getSavePostService(req)
 
   sendResponse(res, {
     success: true,

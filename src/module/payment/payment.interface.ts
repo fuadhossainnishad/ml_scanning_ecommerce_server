@@ -1,14 +1,14 @@
 import { Types } from "mongoose";
 
 export interface IPayment {
-    orderId: Types.ObjectId;
     userId: Types.ObjectId;
     stripeCustomerId: string;
-    subscriptionId: Types.ObjectId;
     paymentIntentId: string,
     amount: number,
     currency: string,
-    payment_method: string;
+    paymentStatus:string
+    paymentMethod: string;
+    metadata:Record<string,unknown>
     payStatus: boolean;
     isDeleted: boolean
 }

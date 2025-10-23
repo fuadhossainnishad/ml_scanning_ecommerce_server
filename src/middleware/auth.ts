@@ -52,7 +52,7 @@ const auth = (...requireRoles: string[]) => {
 
     const isUserExist = await QueryModel.findOne({
       _id: await idConverter(id),
-      email,
+      // email,
     }).lean();
 
     if (!isUserExist) {

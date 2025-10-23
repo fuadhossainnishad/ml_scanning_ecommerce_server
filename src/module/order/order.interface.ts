@@ -2,8 +2,9 @@ import { Types } from "mongoose";
 import { IProducts } from "../cart/cart.interface";
 
 export interface IOrder {
-    cartId: Types.ObjectId
+    paymentId: Types.ObjectId
     userId: Types.ObjectId
+    userType: string
     products: IProducts[]
     subTotal: number
     shippingCharge: number

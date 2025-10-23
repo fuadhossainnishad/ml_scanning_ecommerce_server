@@ -15,8 +15,12 @@ router
   )
   .patch(
     auth("User", "Brand", "Admin"),
-    upload.fields([{ name: "profile", maxCount: 1 }]),
+    upload.fields([
+      { name: "profile", maxCount: 1 },
+      { name: "coverPhoto", maxCount: 1 }
+    ]),
     fileHandle("profile"),
+    fileHandle("coverPhoto"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     UserController.updateUser
   );
@@ -34,9 +38,11 @@ router
   )
   .patch(
     auth("Admin", "User"),
-    upload.fields([{ name: "profile", maxCount: 1 }]),
+    upload.fields([
+      { name: "profile", maxCount: 1 },
+      { name: "coverPhoto", maxCount: 1 }
+    ]),
     fileHandle("profile"),
-    upload.fields([{ name: "coverPhoto", maxCount: 1 }]),
     fileHandle("coverPhoto"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     UserController.updateUser

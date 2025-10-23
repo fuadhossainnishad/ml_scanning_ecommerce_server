@@ -2,17 +2,25 @@ import { model, Model, Schema } from "mongoose";
 import { IOrder } from "./order.interface";
 import { ProductsSchema } from "../cart/cart.model";
 import MongooseHelper from "../../utility/mongoose.helpers";
+import { Role } from '../auth/auth.interface';
 
 const OrderSchema = new Schema<IOrder>({
-    cartId: {
+    paymentId: {
         type: Schema.Types.ObjectId,
-        ref: "Cart",
+        ref: "Payment",
         required: true,
     },
+    paymentStatus: { type: Boolean, required: true },
+    paymentMethod: { type: String, required: true },
     userId: {
         type: Schema.Types.ObjectId,
-        ref: "User",
+        refPath: "userType",
         required: true,
+    },
+    userType: {
+        type: String,
+        required: true,
+        enum: Object.values(Role)
     },
     products: [{
         type: ProductsSchema,
@@ -22,8 +30,6 @@ const OrderSchema = new Schema<IOrder>({
     shippingCharge: { type: Number, required: true },
     totalAmount: { type: Number, required: true },
     orderStatus: { type: String, required: true },
-    paymentStatus: { type: Boolean, required: true },
-    paymentMethod: { type: String, required: true },
     isDeleted: { type: Boolean, default: false },
 }, {
     timestamps: true
