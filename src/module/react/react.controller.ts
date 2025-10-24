@@ -89,8 +89,6 @@ const createReact: RequestHandler = catchAsync(async (req, res) => {
   //   receiverId: [req.user?._id],
   // });
 
-
-
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,

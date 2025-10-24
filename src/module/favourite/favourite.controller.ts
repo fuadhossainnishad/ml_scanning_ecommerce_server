@@ -76,28 +76,92 @@ const createFavouriteProduct: RequestHandler = catchAsync(async (req, res) => {
     );
   }
 
-  // if (req.user?.role !== "Brand" && req.user.role !== "User") {
-  //   throw new AppError(
-  //     httpStatus.BAD_REQUEST,
-  //     "User/Brand is required",
-  //     ""
-  //   );
-  // }
-
   const { _id, role } = req.user
-  const data: IFavouriteProduct = {
-    ownerId: _id,
-    ownerType: role,
-    productId: await idConverter(req.params.id),
-    isDeleted: false,
-    createdAt: new Date(),
-    updatedAt: new Date()
+  const { id } = req.params
+
+  if (!id) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "ProductId is required",
+      ""
+    );
   }
 
-  const result = await GenericService.insertResources<IFavouriteProduct>(
-    FavouriteProduct,
-    data
-  );
+  const productObjectId = await idConverter(id)
+  let result
+
+  const exist = await FavouriteProduct.findOne<IFavouriteProduct>({
+    productId: productObjectId,
+    ownerId: _id,
+    ownerType: role,
+  })
+
+  if (exist) {
+    if (!exist.isDeleted) {
+      result = await FavouriteProduct.findOneAndUpdate(
+        {
+          productId: productObjectId,
+          ownerId: _id,
+          ownerType: role,
+          isDeleted: false
+        },
+        {
+          $set:
+          {
+            isDeleted: true,
+            updatedAt: new Date()
+          }
+        },
+        { new: true }
+      );
+      return sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Favourite product removed successfully",
+        data: { isFavourite: false },
+      });
+    } else {
+      result = await FavouriteProduct.findOneAndUpdate(
+        {
+          postId: productObjectId,
+          ownerId: _id,
+          ownerType: role,
+          isDeleted: true
+        },
+        {
+          $set:
+          {
+            isDeleted: false,
+            updatedAt: new Date()
+          }
+        },
+        { new: true }
+      );
+      return sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Favourite product added successfully",
+        data: { isFavourite: true },
+      });
+    }
+  } else {
+
+    const data: IFavouriteProduct = {
+      ownerId: _id,
+      ownerType: role,
+      productId: productObjectId,
+      isDeleted: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    result = await GenericService.insertResources<IFavouriteProduct>(
+      FavouriteProduct,
+      data
+    );
+
+  }
+
 
   // await NotificationServices.sendNoification({
   //   ownerId: req.user?._id,

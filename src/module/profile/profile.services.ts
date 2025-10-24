@@ -1,121 +1,106 @@
-import httpStatus from "http-status";
 import { Request } from "express";
-import { getRoleModels } from "../../utility/role.utils";
-import { idConverter } from "../../utility/idConverter";
 import { Types } from "mongoose";
-import Admin from "../admin/admin.model";
+import httpStatus from "http-status";
 import AppError from "../../app/error/AppError";
-import { TRole } from '../../types/express';
+import Admin from "../admin/admin.model";
+import { idConverter } from "../../utility/idConverter";
+import { getRoleModels } from "../../utility/role.utils";
+import { TRole } from "../../types/express";
 
-const getProfile = async (req: Request) => {
-    const { _id, role } = req.user;
-    let userId: Types.ObjectId
-    let userRole: TRole
+const getProfileService = async (req: Request) => {
+    const { _id: currentUserId, role: currentUserRole } = req.user;
+
+    let userId: Types.ObjectId;
+    let userRole: TRole;
+
+
     if (!req.params.id) {
-        userId = _id
-        userRole = role
-
+        userId = currentUserId;
+        userRole = currentUserRole;
     } else {
-        userId = await idConverter(req.params.id)
-        console.log("req.params.id:", req.params.id);
-        const findExist = await Admin.findById(userId)
+        userId = await idConverter(req.params.id);
+        const findExist = await Admin.findById(userId);
         if (!findExist) {
-            throw new AppError(httpStatus.NOT_FOUND, "User/Brand not found")
+            throw new AppError(httpStatus.NOT_FOUND, "User/Brand not found");
         }
-        userRole = findExist.role
-
+        userRole = findExist.role;
     }
-
-    console.log("Role:", userRole);
 
     const QueryModel = getRoleModels(userRole);
 
-    const [result] = await QueryModel.aggregate([
-        { $match: { _id: userId, role: userRole, isDeleted: false } },
+    const profileData = await QueryModel.aggregate([
         {
-            $project: {
-                stripe_customer_id: 0,
-                confirmedPassword: 0,
-                password: 0,
-                passwordUpdatedAt: 0,
-                last_login: 0,
-                failed_attempts: 0,
-                createdAt: 0,
-                updatedAt: 0,
-                isDeleted: 0,
-                __t: 0,
-                __v: 0,
-            }
+            $match: {
+                _id: new Types.ObjectId(userId),
+                isDeleted: false,
+            },
         },
+
         {
             $lookup: {
                 from: "posts",
-                let: { userId: "$_id", userType: "$userRole" },
+                let: { uploaderId: "$_id", uploaderType: "$role" },
                 pipeline: [
                     {
                         $match: {
                             $expr: {
                                 $and: [
-                                    { $eq: ["$uploaderId", "$$userId"] },
-                                    { $eq: ["$uploaderType", "$$userType"] }
-                                ]
+                                    { $eq: ["$uploaderId", "$$uploaderId"] },
+                                    { $eq: ["$uploaderType", "$$uploaderType"] },
+                                ],
                             },
-                            isDeleted: false
-                        }
+                            isDeleted: false,
+                        },
                     },
                     {
-                        $facet: {
-                            totals: [
-                                {
-                                    $lookup: {
-                                        from: "reacts",
-                                        localField: "_id",
-                                        foreignField: "postId",
-                                        pipeline: [
-                                            { $match: { isDeleted: false } },
-                                            { $count: "reactCount" }
-                                        ],
-                                        as: "reactData"
-                                    }
-                                },
-                                {
-                                    $addFields: {
-                                        reactCount: {
-                                            $ifNull: ["$reactData.0.reactCount", 0]
-                                        }
-                                    }
-                                },
-                                {
-                                    $group: {
-                                        _id: null,
-                                        totalPosts: { $sum: 1 },
-                                        totalReacts: { $sum: "$reactCount" }
-                                    }
-                                }
+                        $lookup: {
+                            from: "reacts",
+                            localField: "_id",
+                            foreignField: "postId",
+                            pipeline: [
+                                { $match: { isDeleted: false } },
+                                { $count: "reactCount" },
                             ],
-                        }
-                    }
+                            as: "reactData",
+                        },
+                    },
+                    {
+                        $addFields: {
+                            reactCount: { $ifNull: ["$reactData.0.reactCount", 0] },
+                        },
+                    },
+                    {
+                        $group: {
+                            _id: null,
+                            totalPosts: { $sum: 1 },
+                            totalReacts: { $sum: "$reactCount" },
+                        },
+                    },
                 ],
-                as: "postData"
-            }
+                as: "postStats",
+            },
         },
         {
             $addFields: {
-                postData: {
-                    $ifNull: [{ $arrayElemAt: ["$postData", 0] }, { totals: [] }]
-                }
-            }
+                totalPosts: {
+                    $ifNull: [{ $arrayElemAt: ["$postStats.totalPosts", 0] }, 0],
+                },
+                totalReacts: {
+                    $ifNull: [{ $arrayElemAt: ["$postStats.totalReacts", 0] }, 0],
+                },
+            },
         },
         {
-            $addFields: {
-                totalPosts: { $ifNull: ["$postData.totals.0.totalPosts", 0] },
-                totalReacts: { $ifNull: ["$postData.totals.0.totalReacts", 0] }
-            }
+            $project: {
+                postStats: 0,
+            },
         },
+
+
         {
             $lookup: {
                 from: "follows",
-                let: { userId: "$_id", userType: "$userRole" },
+                let: { id: "$_id", type: "$role" },
                 pipeline: [
                     { $match: { isDeleted: false } },
                     { $unwind: "$following" },
@@ -123,44 +108,114 @@ const getProfile = async (req: Request) => {
                         $match: {
                             $expr: {
                                 $and: [
-                                    { $eq: ["$following.id", "$$userId"] },
-                                    { $eq: ["$following.type", "$$userType"] }
-                                ]
-                            }
-                        }
+                                    { $eq: ["$following.id", "$$id"] },
+                                    { $eq: ["$following.type", "$$type"] },
+                                ],
+                            },
+                        },
                     },
-                    { $count: "totalFollowers" }
                 ],
-                as: "followerData"
-            }
+                as: "followersData",
+            },
         },
         {
             $addFields: {
-                totalFollowers: {
-                    $ifNull: ["$followerData.0.totalFollowers", 0]
-                }
-            }
+                totalFollowers: { $size: "$followersData" },
+            },
         },
         {
             $project: {
-                followerData: 0,
-                postData: 0
-            }
-        }
-    ]).exec();
+                followersData: 0,
+            },
+        },
 
-    if (!result) {
-        throw new Error("User profile not found");
+        {
+            $lookup: {
+                from: "follows",
+                let: { id: "$_id", type: "$role" },
+                pipeline: [
+                    { $match: { isDeleted: false } },
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ["$authorId", "$$id"] },
+                                    { $eq: ["$authorType", "$$type"] },
+                                ],
+                            },
+                        },
+                    },
+                ],
+                as: "followingData",
+            },
+        },
+        {
+            $addFields: {
+                totalFollowing: {
+                    $ifNull: [{ $arrayElemAt: ["$followingData.totalFollowing", 0] }, 0],
+                },
+            },
+        },
+        {
+            $project: {
+                followingData: 0,
+            },
+        },
+
+        {
+            $lookup: {
+                from: "follows",
+                let: {
+                    meId: new Types.ObjectId(currentUserId),
+                    targetId: "$_id",
+                    targetRole: "$role",
+                },
+                pipeline: [
+                    { $match: { isDeleted: false } },
+                    { $unwind: "$following" },
+                    {
+                        $match: {
+                            $expr: {
+                                $and: [
+                                    { $eq: ["$authorId", "$$meId"] },
+                                    { $eq: ["$following.id", "$$targetId"] },
+                                    { $eq: ["$following.type", "$$targetRole"] },
+                                ],
+                            },
+                        },
+                    },
+                    { $limit: 1 },
+                ],
+                as: "isFollowingData",
+            },
+        },
+        {
+            $addFields: {
+                isFollowing: {
+                    $cond: [
+                        { $ne: ["$_id", new Types.ObjectId(currentUserId)] },
+                        { $gt: [{ $size: "$isFollowingData" }, 0] },
+                        "$$REMOVE",
+                    ],
+                },
+            },
+        },
+        {
+            $project: {
+                isFollowingData: 0,
+            },
+        },
+    ]);
+
+    if (!profileData || profileData.length === 0) {
+        throw new AppError(httpStatus.NOT_FOUND, "Profile not found");
     }
 
-
-    return {
-        data: result
-    };
+    return profileData[0];
 };
 
 const ProfileServices = {
-    getProfile
+    getProfileService,
 };
 
 export default ProfileServices;

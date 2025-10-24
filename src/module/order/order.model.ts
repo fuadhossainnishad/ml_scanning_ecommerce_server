@@ -10,8 +10,13 @@ const OrderSchema = new Schema<IOrder>({
         ref: "Payment",
         required: true,
     },
-    paymentStatus: { type: Boolean, required: true },
-    paymentMethod: { type: String, required: true },
+    paymentStatus: {
+        type: Boolean,
+        required: true
+    },
+    paymentMethod: {
+        type: String, required: true
+    },
     userId: {
         type: Schema.Types.ObjectId,
         refPath: "userType",
@@ -26,11 +31,21 @@ const OrderSchema = new Schema<IOrder>({
         type: ProductsSchema,
         required: true,
     }],
-    subTotal: { type: Number, required: true },
-    shippingCharge: { type: Number, required: true },
-    totalAmount: { type: Number, required: true },
-    orderStatus: { type: String, required: true },
-    isDeleted: { type: Boolean, default: false },
+    subTotal: {
+        type: Number, required: true
+    },
+    shippingCharge: {
+        type: Number, required: true
+    },
+    totalAmount: {
+        type: Number, required: true
+    },
+    orderStatus: {
+        type: String, required: true
+    },
+    isDeleted: {
+        type: Boolean, default: false
+    },
 }, {
     timestamps: true
 })

@@ -11,8 +11,14 @@ export const SignupSchema: Schema = new Schema<IUser>({
   role: {
     type: String, enum: Role, required: [true, "Role is required"], default: 'User'
   },
-  firstName: { type: String, required: function (this: ISignup) { return this.role === 'User'; } },
-  lastName: { type: String, required: function (this: ISignup) { return this.role === 'User'; } },
+  firstName: {
+    type: String,
+    required: function (this: ISignup) { return this.role === 'User'; }
+  },
+  lastName: {
+    type: String,
+    required: function (this: ISignup) { return this.role === 'User'; }
+  },
   userName: { type: String, default: "" },
   profile: { type: [String], default: [] },
   coverPhoto: { type: [String], default: [] },

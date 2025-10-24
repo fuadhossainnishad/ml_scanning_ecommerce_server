@@ -6,9 +6,9 @@ export interface IPayment {
     paymentIntentId: string,
     amount: number,
     currency: string,
-    paymentStatus:string
+    paymentStatus: string
     paymentMethod: string;
-    metadata:Record<string,unknown>
+    metadata: Record<string, unknown>
     payStatus: boolean;
     isDeleted: boolean
 }

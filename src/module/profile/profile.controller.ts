@@ -14,7 +14,7 @@ const getProfile: RequestHandler = catchAsync(async (req, res) => {
         );
     }
 
-    const result = await ProfileServices.getProfile(req)
+    const result = await ProfileServices.getProfileService(req)
 
     sendResponse(res, {
         success: true,
