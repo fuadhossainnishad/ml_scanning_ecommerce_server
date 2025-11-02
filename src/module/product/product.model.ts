@@ -1,6 +1,6 @@
 import { model, Model, Schema } from "mongoose";
 // import MongooseHelper from "../../utility/mongoose.helpers";
-import { IMeasurement, IProduct, TCategory, TSize } from "./product.interface";
+import { IMeasurement, IProduct, TSize } from "./product.interface";
 
 
 const MeasurementSchema = new Schema<IMeasurement>({
@@ -9,10 +9,10 @@ const MeasurementSchema = new Schema<IMeasurement>({
     enum: Object.values(TSize),
     required: true,
   },
-  chest: { type: Number, required: true },
-  waist: { type: Number, required: true },
-  hips: { type: Number, required: true },
-  heightRange: { type: Number, required: true },
+  chest: { type: String, required: true },
+  waist: { type: String, required: true },
+  hips: { type: String, required: true },
+  heightRange: { type: String, required: true },
 });
 
 const ProductSchema = new Schema<IProduct>({
@@ -26,6 +26,9 @@ const ProductSchema = new Schema<IProduct>({
   shortDescription: { type: String, required: true },
   productImages: {
     type: [String],
+    // validate: function (this: IProduct) {
+    //   return this.productImages.length > 0
+    // },
     required: true,
   },
   colors: {
@@ -34,7 +37,7 @@ const ProductSchema = new Schema<IProduct>({
   },
   category: {
     type: String,
-    enum: Object.values(TCategory),
+    // enum: Object.values(TCategory),
     required: true,
   },
   measurement: {
@@ -52,7 +55,13 @@ const ProductSchema = new Schema<IProduct>({
   discountPrice: { type: Number, required: true },
   saleTag: { type: Boolean, default: false },
   shippingNote: { type: String, required: true },
-});
+  isDeleted: {
+    type: Boolean,
+    default: false
+  }
+},
+  { timestamps: true }
+);
 
 // MongooseHelper.applyToJSONTransform(ProductSchema);
 // MongooseHelper.findExistence<IProduct>(ProductSchema);

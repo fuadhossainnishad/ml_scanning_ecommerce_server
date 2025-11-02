@@ -6,14 +6,30 @@ import sendResponse from "../../utility/sendResponse";
 import Brand from '../brand/brand.model';
 import { IBrand } from "../brand/brand.interface";
 import StatsServices from "./stats.services";
-import Product from "../product/product.model";
+import Product from '../product/product.model';
+import Order from "../order/order.model";
+import { PipelineStage, Types } from "mongoose";
+import Earning from "../earnings/earnings.model";
+import Cart from "../cart/cart.model";
+
+interface MonthlyOrders {
+    month: string; // e.g., "Jan"
+    orders: number; // Total quantity of products ordered
+}
+
+interface BrandStats {
+    totalOrders: number;
+    totalSales: number;
+    totalReviews: number;
+    totalProducts: number
+}
 
 const appFirstStats: RequestHandler = catchAsync(async (req, res) => {
-    if (!req.user || req.user.role !== 'User') {
+    if (!req.user) {
         throw new AppError(httpStatus.NOT_ACCEPTABLE, "Authenticated user is required");
     }
 
-    const result = await StatsServices.fetchAggregation<IBrand>(Brand, ["brandName", "brandLogo","theme"],req.query)
+    const result = await StatsServices.fetchAggregation<IBrand>(Brand, ["brandName", "brandLogo", "theme"], req.query)
 
     sendResponse(res, {
         success: true,
@@ -78,9 +94,246 @@ const getRelatedBrands: RequestHandler = async (req, res) => {
     });
 };
 
+const getMonthlyProductOrders: RequestHandler = catchAsync(async (req, res) => {
+    if (!req.user || req.user.role !== "Brand") {
+        throw new AppError(httpStatus.UNAUTHORIZED, "Authenticated brand is required");
+    }
+
+    // Handle req.query.year properly to avoid type errors
+    const yearParam = req.query.year;
+    const yearStr = Array.isArray(yearParam) ? (yearParam[0] as string) : (yearParam as string);
+    const currentYearStr = yearStr || new Date().getFullYear().toString();
+    const currentYearNum = parseInt(currentYearStr, 10);
+    const brandId = req.user._id;
+
+    // MongoDB Aggregation Pipeline to sum product order quantities by month
+    // Counts all placed orders (not just delivered), using order.createdAt for month/year
+    // Looks up cart products for quantity and products for brandId match
+    const pipeline: PipelineStage[] = [
+        // 1. Match all orders (no status filter for placed orders)
+        { $match: {} },
+        // 2. Unwind items to process each ordered item
+        { $unwind: "$items" },
+        // 3. Lookup specific cart product via pipeline to get quantity and productId
+        {
+            $lookup: {
+                from: "carts",
+                let: { cartId: "$cartId", cartProductId: "$items.cartProductId" },
+                pipeline: [
+                    { $match: { $expr: { $eq: ["$_id", "$$cartId"] } } },
+                    { $unwind: "$products" },
+                    { $match: { $expr: { $eq: ["$products._id", "$$cartProductId"] } } },
+                    { $project: { quantity: "$products.quantity", productId: "$products.productId", isDeleted: "$products.isDeleted" } }
+                ],
+                as: "cartProduct"
+            }
+        },
+        // 4. Unwind cartProduct (skip if no match or deleted)
+        { $unwind: { path: "$cartProduct", preserveNullAndEmptyArrays: false } },
+        // 5. Lookup product to get brandId
+        {
+            $lookup: {
+                from: "products",
+                localField: "cartProduct.productId",
+                foreignField: "_id",
+                as: "product"
+            }
+        },
+        // 6. Unwind product
+        { $unwind: "$product" },
+        // 7. Match by brandId and year (using order.createdAt)
+        {
+            $match: {
+                "product.brandId": brandId,
+                "cartProduct.isDeleted": { $ne: true }, // Exclude deleted cart items
+                $expr: {
+                    $eq: [
+                        { $year: "$createdAt" },
+                        currentYearNum
+                    ]
+                }
+            }
+        },
+        // 8. Project quantity and date fields
+        {
+            $project: {
+                quantity: "$cartProduct.quantity",
+                month: { $month: "$createdAt" },
+                year: { $year: "$createdAt" }
+            }
+        },
+        // 9. Group by month/year
+        {
+            $group: {
+                _id: {
+                    month: "$month",
+                    year: "$year"
+                },
+                totalOrders: { $sum: "$quantity" }
+            }
+        },
+        // 10. Project month name
+        {
+            $project: {
+                _id: 0,
+                month: {
+                    $switch: {
+                        branches: [
+                            { case: { $eq: ["$_id.month", 1] }, then: "Jan" },
+                            { case: { $eq: ["$_id.month", 2] }, then: "Feb" },
+                            { case: { $eq: ["$_id.month", 3] }, then: "Mar" },
+                            { case: { $eq: ["$_id.month", 4] }, then: "Apr" },
+                            { case: { $eq: ["$_id.month", 5] }, then: "May" },
+                            { case: { $eq: ["$_id.month", 6] }, then: "Jun" },
+                            { case: { $eq: ["$_id.month", 7] }, then: "Jul" },
+                            { case: { $eq: ["$_id.month", 8] }, then: "Aug" },
+                            { case: { $eq: ["$_id.month", 9] }, then: "Sep" },
+                            { case: { $eq: ["$_id.month", 10] }, then: "Oct" },
+                            { case: { $eq: ["$_id.month", 11] }, then: "Nov" },
+                            { case: { $eq: ["$_id.month", 12] }, then: "Dec" }
+                        ],
+                        default: "Unknown"
+                    }
+                },
+                orders: "$totalOrders"
+            }
+        },
+        // 11. Add monthNum for sorting
+        {
+            $addFields: {
+                monthNum: {
+                    $switch: {
+                        branches: [
+                            { case: { $eq: ["$month", "Jan"] }, then: 1 },
+                            { case: { $eq: ["$month", "Feb"] }, then: 2 },
+                            { case: { $eq: ["$month", "Mar"] }, then: 3 },
+                            { case: { $eq: ["$month", "Apr"] }, then: 4 },
+                            { case: { $eq: ["$month", "May"] }, then: 5 },
+                            { case: { $eq: ["$month", "Jun"] }, then: 6 },
+                            { case: { $eq: ["$month", "Jul"] }, then: 7 },
+                            { case: { $eq: ["$month", "Aug"] }, then: 8 },
+                            { case: { $eq: ["$month", "Sep"] }, then: 9 },
+                            { case: { $eq: ["$month", "Oct"] }, then: 10 },
+                            { case: { $eq: ["$month", "Nov"] }, then: 11 },
+                            { case: { $eq: ["$month", "Dec"] }, then: 12 }
+                        ],
+                        default: 0
+                    }
+                }
+            }
+        },
+        // 12. Sort by month
+        { $sort: { monthNum: 1 } },
+        // 13. Remove monthNum
+        { $project: { monthNum: 0 } }
+    ];
+
+    const monthlyData: MonthlyOrders[] = await Order.aggregate(pipeline);
+
+    // Fill missing months with 0 orders
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const filledData: MonthlyOrders[] = months.map((month) => {
+        const found = monthlyData.find((m) => m.month === month);
+        return {
+            month,
+            orders: found ? found.orders : 0,
+        };
+    });
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: `Monthly product orders for ${currentYearStr}`,
+        data: filledData,
+    });
+});
+
+const getBrandStats: RequestHandler = catchAsync(async (req, res) => {
+    if (!req.user || req.user.role !== "Brand") {
+        throw new AppError(httpStatus.UNAUTHORIZED, "Authenticated brand is required");
+    }
+
+    console.log("getBrandStats", req.user);
+
+
+    const { _id } = req.user
+    console.log("brandId", _id);
+
+
+    const productPipeline: PipelineStage[] = [
+        { $match: { brandId: _id } },
+        {
+            $lookup: {
+                from: "reviews",
+                let: { productId: "$_id" },
+                pipeline: [
+                    { $match: { $expr: { $eq: ["$productId", "$$productId"] }, isDeleted: false } }
+                ],
+                as: "reviewsData"
+            }
+        },
+        { $addFields: { numReviews: { $size: "$reviewsData" } } },
+        {
+            $group: {
+                _id: null,
+                totalProducts: { $sum: 1 },
+                totalReviews: { $sum: "$numReviews" },
+                productIds: { $addToSet: "$_id" }
+            }
+        }
+    ];
+    const productResult = await Product.aggregate(productPipeline).exec()
+    console.log("productResult:", productResult)
+
+    const { totalProducts = 0, totalReviews = 0, productIds = [] } = productResult[0] || {};
+
+    let totalOrders = 0;
+    if (productIds.length > 0) {
+        const cartPipeline: PipelineStage[] = [
+            { $match: { isDeleted: true } },
+            { $unwind: "$products" },
+            { $match: { "products.productId": { $in: productIds }, "products.isDeleted": false } },
+            {
+                $group: {
+                    _id: null,
+                    cartProductIds: { $addToSet: "$products._id" }
+                }
+            }
+        ];
+        const cartResult = await Cart.aggregate(cartPipeline).exec()
+        const cartProductIds: Types.ObjectId[] = cartResult[0]?.cartProductIds || [];
+
+        if (cartProductIds.length > 0) {
+            totalOrders = await Order.countDocuments({
+                isDeleted: false,
+                "items": { $elemMatch: { cartProductId: { $in: cartProductIds } } }
+            });
+        }
+    }
+
+    const earning = await Earning.findOne({ brandId: _id }).lean();
+    const totalSales = earning ? earning.totalEarnings || 0 : 0;
+
+    const stats: BrandStats = {
+        totalOrders,
+        totalSales,
+        totalReviews,
+        totalProducts,
+    };
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Brand statistics retrieved successfully",
+        data: stats,
+    });
+});
+
 
 const StatsController = {
     appFirstStats,
-    getRelatedBrands
+    getRelatedBrands,
+    getMonthlyProductOrders,
+    getBrandStats
 }
 export default StatsController

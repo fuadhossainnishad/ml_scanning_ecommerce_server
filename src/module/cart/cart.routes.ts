@@ -14,8 +14,16 @@ router.route('/')
     auth("User"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     CartController.uploadCart
-  )
-  ;
+  );
+
+router.patch(
+  '/:id',
+  auth("User"),
+  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+  CartController.updateCart
+);
+
+
 
 router.delete(
   '/:productId',

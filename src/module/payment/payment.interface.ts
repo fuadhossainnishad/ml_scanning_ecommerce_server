@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 
 export interface IPayment {
     userId: Types.ObjectId;
+    orderId: Types.ObjectId;
     stripeCustomerId: string;
     paymentIntentId: string,
     amount: number,

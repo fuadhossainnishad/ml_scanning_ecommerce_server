@@ -26,6 +26,10 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
     req.body.data.stripe_customer_id = await StripeUtils.CreateCustomerId(email)
   }
 
+  if (role === 'Brand') {
+    req.body.data.stripe_accounts_id = await StripeUtils.CreateStripeAccount(email, 'US', req.ip!)
+  }
+
   let result
   switch (role) {
     case "Admin":
@@ -52,7 +56,7 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
     key: "notification",
     data: {
       id: result[key]._id.toString(),
-      message: `${key} login`,
+      message: `${key} registered successfully`,
     },
     receiverId: [result[key]._id],
     notifyAdmin: true,
@@ -91,17 +95,19 @@ const login: RequestHandler = catchAsync(async (req, res) => {
     key: "notification",
     data: {
       id: user?._id.toString(),
-      message: `${user.role} login`,
+      message: `${user.role} successfully login`,
     },
     receiverId: [user._id],
     notifyAdmin: true,
   });
 
+
+
   return sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
     message: `${user.role} successfully login`,
-    data: { ...token, role: user.role },
+    data: { ...token, role: user.role, id: user._id },
   });
 
 

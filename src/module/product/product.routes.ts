@@ -3,6 +3,7 @@ import auth from "../../middleware/auth";
 import ProductController from "./product.controller";
 import { upload } from "../../middleware/multer/multer";
 import { fileHandle } from "../../middleware/fileHandle";
+import StatsController from "../stats/stats.controller";
 
 const router = express.Router();
 
@@ -18,18 +19,24 @@ router
     auth("User", "Brand", "Admin"),
     ProductController.getAllProduct
   )
-  .delete(
-    auth("Admin"),
-    ProductController.createProduct
-  );
-
-router.patch(
-  "/:id",
-  // auth("Brand"),
-  upload.fields([{ name: "productImages", maxCount: 10 }]),
-  fileHandle("productImages"),
-  ProductController.updateProduct
+router.get(
+  '/orders',
+  auth('Brand'),
+  StatsController.getBrandStats
 );
+
+router
+  .route("/:id")
+  .patch(
+    auth("Brand"),
+    upload.fields([{ name: "productImages", maxCount: 10 }]),
+    fileHandle("productImages"),
+    ProductController.updateProduct
+  )
+  .delete(
+    auth("Brand"),
+    ProductController.deleteProduct
+  );
 
 const ProductRouter = router;
 export default ProductRouter;

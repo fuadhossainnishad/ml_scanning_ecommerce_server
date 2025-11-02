@@ -38,8 +38,11 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
     ...req.body.data,
     brandId: req.user._id!,
     stripe_product_id: stripeProductId,
-    stripe_price_id: stripePriceId
+    stripe_price_id: stripePriceId,
   }
+
+  console.log("products:", req.user, req.body!);
+  console.log("measurement:", req.body.data.measurement!);
 
 
   const result = await GenericService.insertResources<IProduct>(
@@ -106,9 +109,9 @@ const getAllProduct: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const updateProduct: RequestHandler = catchAsync(async (req, res) => {
-  // if (!req.user) {
-  //   throw new AppError(httpStatus.UNAUTHORIZED, "Brand is not authenticated", "");
-  // }
+  if (req.user.role !== "Brand") {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Brand is not authenticated", "");
+  }
   const id = req?.params.id;
 
   // const id =
@@ -144,20 +147,22 @@ const updateProduct: RequestHandler = catchAsync(async (req, res) => {
 
 const deleteProduct: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Admin not authenticated", "");
+    throw new AppError(httpStatus.UNAUTHORIZED, "Brand not authenticated", "");
   }
 
-  if (req.user?.role !== "Admin") {
+  if (req.user?.role !== "Brand") {
     throw new AppError(
       httpStatus.NOT_FOUND,
       "Only admin can do update Product",
       ""
     );
   }
-  const { ProductId } = req.body.data;
-  const result = await GenericService.deleteResources<IProduct>(
+  const { id } = req.params
+  const result = await GenericService.deleteResources<IProduct, "brandId">(
     Product,
-    await idConverter(ProductId)
+    await idConverter(id),
+    req.user._id,
+    'brandId'
   );
 
   await NotificationServices.sendNoification({

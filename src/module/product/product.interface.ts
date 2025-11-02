@@ -25,10 +25,10 @@ export enum TSize {
 
 export interface IMeasurement {
   size: TSize
-  chest: number
-  waist: number
-  hips: number
-  heightRange: number
+  chest: string
+  waist: string
+  hips: string
+  heightRange: string
 }
 
 export interface IProduct {

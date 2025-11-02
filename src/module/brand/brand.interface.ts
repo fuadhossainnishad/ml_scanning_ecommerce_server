@@ -7,6 +7,7 @@ export interface IBrand
   brandLogo: string[] | null | undefined;
   brandStory:string
   theme: string
+  stripe_accounts_id:string
 }
 
 export type TBrandUpdate = Partial<IBrand> & {

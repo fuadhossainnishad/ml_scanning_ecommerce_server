@@ -14,7 +14,7 @@ router
     UserController.getUser
   )
   .patch(
-    auth("User", "Brand", "Admin"),
+    auth("User"),
     upload.fields([
       { name: "profile", maxCount: 1 },
       { name: "coverPhoto", maxCount: 1 }

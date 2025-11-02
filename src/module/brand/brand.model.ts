@@ -22,12 +22,16 @@ const BrandSchema: Schema = new Schema<IBrand>(
     },
     brandStory: {
       type: String,
-      required: true
+      dafault: ""
     },
     theme: {
       type: String,
+      dafault: ""
+    },
+    stripe_accounts_id: {
+      type: String,
       required: true
-    }
+    },
   }
   , { timestamps: true, collection: "brands" }
 );

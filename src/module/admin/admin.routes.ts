@@ -17,8 +17,12 @@ router
 router.patch(
   '/',
   auth('Admin'),
-  upload.fields([{ name: "profile", maxCount: 1 }]),
+  upload.fields([
+    { name: "profile", maxCount: 1 },
+    { name: "coverPhoto", maxCount: 1 }
+  ]),
   fileHandle("profile"),
+  fileHandle("coverPhoto"),
   //   validationRequest(AuthValidationSchema.playerSignUpValidation),
   AdminController.updateAdmin
 );

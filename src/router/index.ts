@@ -18,6 +18,11 @@ import FavouriteRouter from "../module/favourite/favourite.routes";
 import CartRouter from "../module/cart/cart.routes";
 import FollowRouter from "../module/follow/follow.routes";
 import ProfileRouter from "../module/profile/profile.routes";
+import PaymentRouter from "../module/payment/payment.routes";
+import OrderRouter from "../module/order/order.routes";
+import EarningsRouter from "../module/earnings/earnings.routes";
+import GraphsRouter from "../module/stats/graph.routes";
+import CardRouter from "../module/card/card.routes";
 
 const router = express.Router();
 
@@ -29,13 +34,18 @@ const moduleRoutes = [
   { path: "/admin", route: AdminRouter },
   { path: "/cart", route: CartRouter },
   { path: "/comments", route: CommentsRouter },
+  { path: "/earnings", route: EarningsRouter },
   { path: "/favourite", route: FavouriteRouter },
   { path: "/follow", route: FollowRouter },
+  { path: "/graph", route: GraphsRouter },
+  { path: "/order", route: OrderRouter },
+  { path: "/payment", route: PaymentRouter },
   { path: "/profile", route: ProfileRouter },
   { path: "/product", route: ProductRouter },
   { path: "/post", route: PostRouter },
   { path: "/react", route: ReactRouter },
   { path: "/review", route: ReviewRouter },
+  { path: "/save_card", route: CardRouter },
   { path: "/savepost", route: SavePostRouter },
   { path: "/settings", route: SettingsRouter },
   { path: "/stats", route: StatsRouter },

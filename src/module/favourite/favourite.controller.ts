@@ -123,7 +123,7 @@ const createFavouriteProduct: RequestHandler = catchAsync(async (req, res) => {
     } else {
       result = await FavouriteProduct.findOneAndUpdate(
         {
-          postId: productObjectId,
+          productId: productObjectId,
           ownerId: _id,
           ownerType: role,
           isDeleted: true

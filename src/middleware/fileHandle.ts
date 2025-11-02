@@ -5,11 +5,11 @@ import AppError from "../app/error/AppError";
 
 export const fileHandle = (fieldName: string): RequestHandler =>
   catchAsync(async (req, res, next) => {
+    console.log("string data:", req.body.data);
     if (typeof req.body.data === "string") {
       try {
         req.body.data = JSON.parse(req.body.data);
         console.log("parsed data:", req.body.data);
-
       } catch (error) {
         let errorMessage = "Unknown JSON parse error";
         if (error instanceof Error) {
@@ -24,7 +24,7 @@ export const fileHandle = (fieldName: string): RequestHandler =>
     ];
     if (!files || files.length === 0) {
       req.body.data[`${fieldName}Urls`] = [];
-          console.log("No file");
+      console.log("No file");
 
       return next();
     }
@@ -38,7 +38,7 @@ export const fileHandle = (fieldName: string): RequestHandler =>
       fileList.push(url);
     }
     req.body.data[`${fieldName}`] = fileList;
-    console.log("parsed data:",req.body.data);
-    
+    console.log("parsed data:", req.body.data);
+
     next();
   });

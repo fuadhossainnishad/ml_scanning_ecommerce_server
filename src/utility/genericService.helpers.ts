@@ -92,6 +92,8 @@ const deleteResources = async <T, K extends keyof T | undefined = undefined>(
 
   if (owner && ownerId) {
     if (owner in resource && resource[owner] instanceof Types.ObjectId) {
+      console.log("ownerId:", ownerId, "resource[owner]:", resource[owner]);
+
       if (ownerId.toString() !== resource[owner].toString()) {
         throw new AppError(
           httpStatus.NOT_ACCEPTABLE,

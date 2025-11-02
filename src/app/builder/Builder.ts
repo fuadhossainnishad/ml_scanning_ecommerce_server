@@ -30,10 +30,7 @@ class AggregationQueryBuilder<T> {
         this._setupPagination();
     }
 
-    /**
-     * Adds search functionality using $or with regex on searchable fields.
-     * Merges into the match object.
-     */
+
     search(searchableFields: string[]): this {
         this.searchableFields = searchableFields;
         const searchTerm = this.query.searchTerm as string;
@@ -48,10 +45,7 @@ class AggregationQueryBuilder<T> {
         return this;
     }
 
-    /**
-     * Applies filtering by excluding pagination/sort/search fields and merging into match.
-     * Handles basic ObjectId casting for common ID fields (extend as needed).
-     */
+
     filter(idFields: string[] = ["uploaderId", "brandId", "_id"]): this {
         const queryObject = { ...this.query };
         const excludeFields = ["searchTerm", "sort", "limit", "page", "fields"];
@@ -72,9 +66,7 @@ class AggregationQueryBuilder<T> {
         return this;
     }
 
-    /**
-     * Applies sorting based on query.sort (e.g., "field1,-field2").
-     */
+
     sort(): this {
         const sortStr = this.query.sort as string;
         if (sortStr) {
@@ -87,18 +79,14 @@ class AggregationQueryBuilder<T> {
         return this;
     }
 
-    /**
-     * Sets up pagination values (does not add stages yet).
-     */
+
     private _setupPagination(): void {
         this.limit = Number(this.query.limit) || 10;
         this.page = Number(this.query.page) || 1;
         this.skip = (this.page - 1) * this.limit;
     }
 
-    /**
-     * Applies field projection (e.g., "field1,-field2").
-     */
+
     fields(): this {
         if (this.query.fields) {
             const fieldStr = this.query.fields as string;
@@ -114,19 +102,13 @@ class AggregationQueryBuilder<T> {
         return this;
     }
 
-    /**
-     * Adds custom aggregation stages (e.g., $lookup, $addFields) to insert after $match.
-     * Useful for complex pipelines like joins.
-     */
+
     addStages(stages: PipelineStage[]): this {
         this.customStages.push(...stages);
         return this;
     }
 
-    /**
-     * Computes total count and pagination meta using a minimal pipeline ($match + $count).
-     * Call this before executing the full aggregation.
-     */
+
     async countTotal(): Promise<PaginationMeta> {
         const countPipeline: PipelineStage[] = [
             { $match: this.matchObj },
@@ -145,9 +127,7 @@ class AggregationQueryBuilder<T> {
         };
     }
 
-    /**
-     * Builds the full aggregation pipeline.
-     */
+
     buildPipeline(): PipelineStage[] {
         return [
             { $match: this.matchObj },
@@ -159,24 +139,18 @@ class AggregationQueryBuilder<T> {
         ];
     }
 
-    /**
-     * Executes the aggregation and returns the results.
-     */
+
     async execute(): Promise<T[]> {
         const pipeline = this.buildPipeline();
         return this.model.aggregate(pipeline);
     }
 
-    /**
-     * Gets current pagination values.
-     */
+
     getPagination(): { page: number; limit: number; skip: number } {
         return { page: this.page, limit: this.limit, skip: this.skip };
     }
 
-    /**
-     * Gets the current match object (for debugging or manual use).
-     */
+
     getMatchObj(): Record<string, any> {
         return this.matchObj;
     }

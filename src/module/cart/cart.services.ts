@@ -62,11 +62,11 @@ const getCartService = async (req: Request) => {
     },
   ])
 
-  if (!result.length) {
-    throw new AppError(httpStatus.NOT_FOUND, "No cart found for this user", "");
-  }
+  // if (!result.length) {
+  //   throw new AppError(httpStatus.NOT_FOUND, "No cart found for this user", "");
+  // }
 
-  return { cart: result[0] };
+  return result[0]
 
 }
 

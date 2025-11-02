@@ -8,17 +8,23 @@ import Stripe from "stripe";
 
 const createPaymentIntentService = async (payload: IPaymentIntent) => {
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: payload.amount,
+    amount: Math.round(payload.amount * 100),
     currency: payload.currency || "usd",
-    automatic_payment_methods: {
-      enabled: true,
-    },
+    // automatic_payment_methods: {
+    //   enabled: true,
+    // },
+    payment_method_types: ['card'],
     metadata: {
-      subscriptionId: payload.subscriptionId,
       userId: payload.userId,
-      stripe_customer_id: payload.stripe_customer_id
+      stripe_customer_id: payload.stripe_customer_id,
+      orderId: payload.orderId,
+      cartId: payload.cartId
+
     },
   });
+
+  console.log("pay intent:", paymentIntent);
+
   if (!paymentIntent) {
     throw new AppError(
       httpStatus.NOT_IMPLEMENTED,
@@ -75,10 +81,64 @@ export const handleStripeWebhook = async (payload: IWebhooks) => {
 
 };
 
+const CreateSetupIntent = async (customerId: string) => {
+  const setupintent = await stripe.setupIntents.create({
+    customer: customerId,
+    payment_method_types: ['card']
+  })
+
+  if (!setupintent) {
+    throw new AppError(httpStatus.NOT_FOUND, "No setup intent found");
+  }
+
+  return { setupintent_client_secret: setupintent.client_secret }
+}
+
+const attachPaymentMethodService = async (data: {
+  paymentMethodId: string;
+  stripeCustomerId: string;
+}) => {
+  const { paymentMethodId, stripeCustomerId } = data;
+
+  const customer = await stripe.customers.retrieve(stripeCustomerId);
+  await stripe.paymentMethods.attach(paymentMethodId, {
+    customer: stripeCustomerId,
+  });
+
+  // Optional: Set as default if needed
+  // await stripe.customers.update(stripeCustomerId, {
+  //   invoice_settings: { default_payment_method: paymentMethodId },
+  // });
+
+  return customer
+}
+
+const listPaymentMethodsService = async (data: { stripeCustomerId: string }) => {
+  const { stripeCustomerId } = data;
+  const paymentMethods = await stripe.paymentMethods.list({
+    customer: stripeCustomerId,
+    type: 'card',
+  });
+
+  const formatted = paymentMethods.data.map(pm => ({
+    id: pm.id,
+    brand: pm.card?.brand,
+    last4: pm.card?.last4,
+    // exp_month: pm.card?.exp_month,
+    // exp_year: pm.card?.exp_year,
+    // isDefault: pm.id === (await stripe.customers.retrieve(stripeCustomerId)).invoice_settings?.default_payment_method,
+  }));
+
+  return formatted;
+};
+
 const StripeServices = {
   createPaymentIntentService,
   createStripeProductId,
   createStripePriceId,
-  handleStripeWebhook
+  handleStripeWebhook,
+  attachPaymentMethodService,
+  listPaymentMethodsService,
+  CreateSetupIntent
 };
 export default StripeServices;

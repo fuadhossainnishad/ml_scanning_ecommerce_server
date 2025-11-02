@@ -9,6 +9,11 @@ const PaymentSchema: Schema<IPayment> = new Schema(
       ref: "User",
       required: true
     },
+    orderId: {
+      type: Schema.Types.ObjectId,
+      ref: "Order",
+      required: true
+    },
     stripeCustomerId: {
       type: String,
       required: true

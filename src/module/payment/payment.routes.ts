@@ -1,17 +1,27 @@
-// src/modules/player/player.router.ts
-
 import express from 'express';
-// import validationRequest from '../../middleware/validationRequest';
-// import AuthValidationSchema from '../auth/auth.validation';
-// import AuthController from '../auth/auth.controller';
+import auth from '../../middleware/auth';
+import PaymentController from './payment.controller';
+
 
 const router = express.Router();
 
-// router.post(
-//   '/signup',
-//   validationRequest(AuthValidationSchema.playerSignUpValidation),
-//   AuthController.playerSignUp,
-// );
+router.post(
+    '/card',
+    auth('User'),
+    PaymentController.createPaymentIntent
+);
 
-// const PlayerRouter = router;
-export default router;
+router.post(
+    '/paypal',
+    auth('User'),
+    PaymentController.createPaymentIntent
+);
+
+router.post(
+    '/webhook',
+    express.raw({ type: 'application/json' }),
+    PaymentController.webhooks
+);
+
+const PaymentRouter = router;
+export default PaymentRouter;

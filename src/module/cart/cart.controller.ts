@@ -153,6 +153,9 @@ const updateCart: RequestHandler = catchAsync(async (req, res) => {
 
   const updatedCart = { userId: req.user._id, products: req.body.data };
 
+  console.log("updated cart:", updatedCart);
+
+
   const result = await GenericService.updateResources<ICart>(
     Cart,
     await idConverter(id),
