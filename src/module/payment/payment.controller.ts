@@ -14,7 +14,7 @@ import { idConverter } from "../../utility/idConverter";
 import { ICart, IProductResponse } from "../cart/cart.interface";
 import Cart from "../cart/cart.model";
 
-const createPaymentIntent: RequestHandler = catchAsync(async (req, res) => {
+const paymentWithSaveCard: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
         throw new AppError(
             httpStatus.BAD_REQUEST,
@@ -68,12 +68,14 @@ const createPaymentIntent: RequestHandler = catchAsync(async (req, res) => {
     req.body.data.orderId = order.order._id.toString();
     req.body.data.cartId = order.order.cartId.toString();
 
-    const result = await StripeServices.createPaymentIntentService(req.body.data);
+    const result = await StripeServices.paymentWithSaveCardservice(req.body.data);
 
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,
-        message: "Payment intent created successfully",
+        message: result.status === "succeeded"
+            ? "Payment completed successfully"
+            : "Payment is processing",
         data: result,
     });
 });
@@ -162,7 +164,7 @@ const webhooks: RequestHandler = catchAsync(async (req, res) => {
 })
 
 const PaymentController = {
-    createPaymentIntent,
+    paymentWithSaveCard,
     webhooks
 }
 export default PaymentController

@@ -1,5 +1,5 @@
 import AppError from "../../app/error/AppError";
-import { IPayment } from "./payment.interface";
+import { IPayment, ISaveCard } from "./payment.interface";
 import Payment from "./payment.model";
 import httpStatus from 'http-status';
 

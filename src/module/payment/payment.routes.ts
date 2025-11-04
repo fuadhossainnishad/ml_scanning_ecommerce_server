@@ -8,14 +8,14 @@ const router = express.Router();
 router.post(
     '/card',
     auth('User'),
-    PaymentController.createPaymentIntent
+    PaymentController.paymentWithSaveCard
 );
 
-router.post(
-    '/paypal',
-    auth('User'),
-    PaymentController.createPaymentIntent
-);
+// router.post(
+//     '/paypal',
+//     auth('User'),
+//     PaymentController.paymentWithSaveCard
+// );
 
 router.post(
     '/webhook',

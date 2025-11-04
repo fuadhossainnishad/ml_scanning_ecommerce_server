@@ -6,14 +6,16 @@ import { ISubscription } from "../subscription/subscription.interface";
 import config from "../../app/config";
 import Stripe from "stripe";
 
-const createPaymentIntentService = async (payload: IPaymentIntent) => {
+const paymentWithSaveCardservice = async (payload: IPaymentIntent) => {
   const paymentIntent = await stripe.paymentIntents.create({
     amount: Math.round(payload.amount * 100),
     currency: payload.currency || "usd",
     // automatic_payment_methods: {
     //   enabled: true,
     // },
-    payment_method_types: ['card'],
+    payment_method: payload.paymentMethodId,
+    confirm: true,
+    off_session: true,
     metadata: {
       userId: payload.userId,
       stripe_customer_id: payload.stripe_customer_id,
@@ -31,7 +33,18 @@ const createPaymentIntentService = async (payload: IPaymentIntent) => {
       "There is a problem on payment building"
     );
   }
-  return { clientSecret: paymentIntent.client_secret };
+  // return { clientSecret: paymentIntent.client_secret };
+  return {
+    paymentIntentId: paymentIntent.id,
+    status: paymentIntent.status,
+    amount: paymentIntent.amount / 100,
+    currency: paymentIntent.currency,
+    message:
+      paymentIntent.status === "succeeded"
+        ? "Payment successful"
+        : "Payment processing",
+  };
+
 };
 
 const createStripeProductId = async (name: string, description: string): Promise<string> => {
@@ -120,6 +133,8 @@ const listPaymentMethodsService = async (data: { stripeCustomerId: string }) => 
     type: 'card',
   });
 
+  console.log("paymentMethods", paymentMethods)
+
   const formatted = paymentMethods.data.map(pm => ({
     id: pm.id,
     brand: pm.card?.brand,
@@ -133,7 +148,7 @@ const listPaymentMethodsService = async (data: { stripeCustomerId: string }) => 
 };
 
 const StripeServices = {
-  createPaymentIntentService,
+  paymentWithSaveCardservice,
   createStripeProductId,
   createStripePriceId,
   handleStripeWebhook,
