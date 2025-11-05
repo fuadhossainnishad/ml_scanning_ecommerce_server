@@ -6,16 +6,14 @@ import { ISubscription } from "../subscription/subscription.interface";
 import config from "../../app/config";
 import Stripe from "stripe";
 
-const paymentWithSaveCardservice = async (payload: IPaymentIntent) => {
+const createPaymentIntentService = async (payload: IPaymentIntent) => {
   const paymentIntent = await stripe.paymentIntents.create({
     amount: Math.round(payload.amount * 100),
     currency: payload.currency || "usd",
     // automatic_payment_methods: {
     //   enabled: true,
     // },
-    payment_method: payload.paymentMethodId,
-    confirm: true,
-    off_session: true,
+    payment_method_types: ['card'],
     metadata: {
       userId: payload.userId,
       stripe_customer_id: payload.stripe_customer_id,
@@ -33,18 +31,7 @@ const paymentWithSaveCardservice = async (payload: IPaymentIntent) => {
       "There is a problem on payment building"
     );
   }
-  // return { clientSecret: paymentIntent.client_secret };
-  return {
-    paymentIntentId: paymentIntent.id,
-    status: paymentIntent.status,
-    amount: paymentIntent.amount / 100,
-    currency: paymentIntent.currency,
-    message:
-      paymentIntent.status === "succeeded"
-        ? "Payment successful"
-        : "Payment processing",
-  };
-
+  return { clientSecret: paymentIntent.client_secret };
 };
 
 const createStripeProductId = async (name: string, description: string): Promise<string> => {
@@ -133,8 +120,6 @@ const listPaymentMethodsService = async (data: { stripeCustomerId: string }) => 
     type: 'card',
   });
 
-  console.log("paymentMethods", paymentMethods)
-
   const formatted = paymentMethods.data.map(pm => ({
     id: pm.id,
     brand: pm.card?.brand,
@@ -147,13 +132,23 @@ const listPaymentMethodsService = async (data: { stripeCustomerId: string }) => 
   return formatted;
 };
 
+const createEphimeralKey = async (customer: string) => {
+  const ephemeralKey = await stripe.ephemeralKeys.create(
+    { customer: customer! },
+    { apiVersion: '2025-10-29.clover' }
+  );
+
+  return ephemeralKey.secret
+}
+
 const StripeServices = {
-  paymentWithSaveCardservice,
+  createPaymentIntentService,
   createStripeProductId,
   createStripePriceId,
   handleStripeWebhook,
   attachPaymentMethodService,
   listPaymentMethodsService,
-  CreateSetupIntent
+  CreateSetupIntent,
+  createEphimeralKey
 };
 export default StripeServices;

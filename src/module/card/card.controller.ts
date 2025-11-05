@@ -4,6 +4,8 @@ import AppError from "../../app/error/AppError";
 import httpStatus from 'http-status';
 import sendResponse from "../../utility/sendResponse";
 import StripeServices from "../stripe/stripe.service";
+import StripeUtils from "../../utility/stripe.utils";
+import Admin from "../admin/admin.model";
 
 // In your payment.controller.ts (add this)
 const savePaymentMethod: RequestHandler = catchAsync(async (req, res) => {
@@ -47,6 +49,16 @@ const getSavedPaymentMethods: RequestHandler = catchAsync(async (req, res) => {
 const setupIntent: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
         throw new AppError(httpStatus.BAD_REQUEST, "Authenticated user is required", "");
+    }
+
+    const stripe_customer_id = await StripeUtils.checkCustomerId(
+        req.user.stripe_customer_id,
+        req.user.email
+    );
+
+    if (stripe_customer_id !== req.user.stripe_customer_id) {
+        await Admin.findByIdAndUpdate(req.user._id, { stripe_customer_id: stripe_customer_id });
+        req.user.stripe_customer_id = stripe_customer_id
     }
     const result = await StripeServices.CreateSetupIntent(req.user.stripe_customer_id);
 

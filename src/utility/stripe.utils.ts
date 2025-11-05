@@ -12,6 +12,33 @@ const CreateCustomerId = async (email: string): Promise<string> => {
     return customer.id;
 }
 
+const checkCustomerId = async (customerId: string, email: string) => {
+    if (customerId) {
+        try {
+            const customer = await stripe.customers.retrieve(customerId);
+            if (!('deleted' in customer) || !customer.deleted) {
+                console.log("✅ Existing customer found:", customer.id);
+                return customer.id;
+            }
+            console.log("❌ Customer ID is deleted. Creating a new customer...");
+        } catch (error: any) {
+            if (error.code === 'resource_missing' || error.message.includes('No such customer')) {
+                console.log("❌ Customer ID does not exist. Creating a new customer...");
+            } else {
+                // Re-throw unexpected errors
+                throw error;
+            }
+        }
+    }
+    if (!email) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Email is required to create a new Stripe customer");
+    }
+
+    const newCustomer = await CreateCustomerId(email);
+    console.log("✅ New customer created:", newCustomer);
+    return newCustomer;
+}
+
 const CreateStripeAccount = async (email: string, country = 'US', ip: string) => {
     const account = await stripe.accounts.create({
         type: 'custom',
@@ -92,6 +119,7 @@ const IsAccountReady = async (accountId: string) => {
 
 const StripeUtils = {
     CreateCustomerId,
+    checkCustomerId,
     CreateStripeAccount,
     CreatePayout,
     CreateExternalAccount,

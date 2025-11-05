@@ -9,6 +9,8 @@ import rateLimit from "express-rate-limit";
 import { createServer } from "http";
 import { socketio } from "./app/config/socketio.config";
 import path from "path";
+import PaymentController from "./module/payment/payment.controller";
+import auth from "./middleware/auth";
 
 const app = express();
 // const allowedOrigins = ["http://192.168.56.1:3000", "*"];
@@ -67,7 +69,11 @@ app.get("/", (req: Request, res: Response) => {
 //   });
 // });
 
+
+
 app.use("/api/v1", router);
+app.post("/api/v1/payment-sheet", auth('User'), PaymentController.test);
+
 
 app.use(notFound);
 
