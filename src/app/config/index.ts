@@ -30,8 +30,8 @@ export default {
     bucket: process.env.AWS_S3_BUCKET_NAME,
   },
   stripe: {
-    secretKey: process.env.STRIPE_SECRET_KEY,
-    webHookSecret: process.env.STRIPE_WEBHOOK_SECRET,
-    publishKey: process.env.STRIPE_PUBLISH_KEY
+    secretKey: process.env.STRIPE_SECRET_KEY!,
+    webHookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+    publishKey: process.env.STRIPE_PUBLISH_KEY!
   },
 };

@@ -85,6 +85,8 @@ const getProduct: RequestHandler = catchAsync(async (req, res) => {
     Product,
     await idConverter(ProductId)
   );
+
+  console.log("getProduct:", result)
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,

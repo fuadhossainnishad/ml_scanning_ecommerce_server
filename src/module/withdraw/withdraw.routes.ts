@@ -1,14 +1,15 @@
 import express from 'express';
 import auth from '../../middleware/auth';
+import EarningsController from './withdraw.controller';
 
 const router = express.Router()
 
 router
     .route('/')
-    .get(
+    .post(
         auth('Brand'),
-        // EarningsController
+        EarningsController.CreateWithdraw
     )
 
-const EarningsRouter = router
-export default EarningsRouter
+const WithdrawRouter = router
+export default WithdrawRouter

@@ -30,7 +30,7 @@ const appFirstStats: RequestHandler = catchAsync(async (req, res) => {
     }
 
     const result = await StatsServices.fetchAggregation<IBrand>(Brand, ["brandName", "brandLogo", "theme"], req.query)
-
+    console.log("appFirstStats:", result)
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,
@@ -86,6 +86,8 @@ const getRelatedBrands: RequestHandler = async (req, res) => {
             $limit: 5  // Limit to top 5 related brands
         }
     ]);
+
+    console.log("relatedBrands:", relatedBrands)
 
     return res.json({
         success: true,

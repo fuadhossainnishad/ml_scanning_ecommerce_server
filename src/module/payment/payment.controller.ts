@@ -15,6 +15,7 @@ import { ICart, IProductResponse } from "../cart/cart.interface";
 import Cart from "../cart/cart.model";
 import stripe from '../../app/config/stripe.config';
 import config from "../../app/config";
+import StripeUtils from "../../utility/stripe.utils";
 
 const paymentWithSaveCard: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
@@ -94,6 +95,7 @@ const webhooks: RequestHandler = catchAsync(async (req, res) => {
     const rawbody = req.body
 
     const { paymentIntent } = await StripeServices.handleStripeWebhook({ sig: sig, rawbody: rawbody })
+    console.log("paymentIntent:", paymentIntent)
 
     const { metadata, id, amount, currency, status, payment_method } = paymentIntent;
     let paymentMethodId
@@ -173,7 +175,7 @@ const test: RequestHandler = catchAsync(async (req, res) => {
     }
 
     // Use correct field name: stripe_customer_id (top-level on user)
-    const customerId = req.user.stripe_customer_id;
+    const customerId = await StripeUtils.checkCustomerId(req.user.stripe_customer_id, req.user.email);
     if (!customerId) {
         throw new AppError(
             httpStatus.BAD_REQUEST,
@@ -182,11 +184,16 @@ const test: RequestHandler = catchAsync(async (req, res) => {
         );
     }
 
+    const metadata = req.body.data.address
+
+    console.log("data:", req.body.data)
+
     const ephemeralKey = await StripeServices.createEphimeralKey(customerId);
     const paymentIntent = await stripe.paymentIntents.create({
-        amount: 1099,
+        amount: Math.round(Number(req.body.data.amount) * 100),
         currency: 'usd',
         customer: customerId,
+        metadata,
         automatic_payment_methods: {
             enabled: true,
         },
@@ -199,14 +206,118 @@ const test: RequestHandler = catchAsync(async (req, res) => {
             paymentIntent: paymentIntent.client_secret,
             ephemeralKey: ephemeralKey,
             customer: customerId,
-            publishableKey: config.stripe.publishKey
+            publishableKey: config.stripe.publishKey!
         },
     });
 });
 
+const payment: RequestHandler = catchAsync(async (req, res) => {
+    if (!req.user) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Authenticated user is required",
+            ""
+        );
+    }
+
+    const customerId = await StripeUtils.checkCustomerId(req.user.stripe_customer_id, req.user.email);
+    if (!customerId) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Stripe customer ID is required",
+            ""
+        );
+    }
+
+    // const metadata = req.body.data.address
+
+    console.log("data:", req.body.data)
+
+    const ephemeralKey = await StripeServices.createEphimeralKey(customerId);
+
+
+    const findCart = await CartServices.getCartService(req);
+    // const findCart = await Cart.find({ userId: req.user._id, isDeleted: false })
+
+    console.log("cart details:", findCart!);
+
+    if (!findCart) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "There are no products in the cart to order",
+            ""
+        );
+    }
+
+    if (Number(findCart.total) !== Number(req.body.data.amount)) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Amount mismatch",
+            ""
+        );
+    }
+
+    const orderItems = findCart.products.map((prod: IProductResponse) => ({
+        cartProductId: prod._id!,
+        sellerStatus: SellerStatus.MARK_READY,
+        remindStatus: RemindeStatus.PROCESSING,
+    }));
+
+    const orderData: IOrder = {
+        userId: req.user._id,
+        userType: req.user.role,
+        cartId: findCart._id!,
+        address: req.body.data.address,
+        items: orderItems,
+        orderStatus: OrderStatus.PROCESSING,
+        paymentStatus: PaymentStatus.PENDING,
+        isDeleted: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
+
+    const order = await GenericService.insertResources<IOrder>(Order, orderData);
+
+    req.body.data.userId = req.user._id.toString();
+    req.body.data.stripe_customer_id = req.user.stripe_customer_id;
+    req.body.data.orderId = order.order._id.toString();
+    req.body.data.cartId = order.order.cartId.toString();
+
+    const metadata = {
+        userId: req.body.data.userId,
+        stripe_customer_id: req.body.data.stripe_customer_id,
+        orderId: req.body.data.orderId,
+        cartId: req.body.data.cartId
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(Number(req.body.data.amount) * 100),
+        currency: 'usd',
+        customer: customerId,
+        metadata,
+        automatic_payment_methods: {
+            enabled: true,
+        },
+    });
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Payment is processing",
+        data: {
+            paymentIntent: paymentIntent.client_secret,
+            ephemeralKey: ephemeralKey,
+            customer: customerId,
+            publishableKey: config.stripe.publishKey!
+        },
+    });
+});
+
+
 const PaymentController = {
     paymentWithSaveCard,
     webhooks,
-    test
+    test,
+    payment
 }
 export default PaymentController
