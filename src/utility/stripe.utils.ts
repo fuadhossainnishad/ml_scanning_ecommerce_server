@@ -39,32 +39,58 @@ const checkCustomerId = async (customerId: string, email: string) => {
     return newCustomer;
 }
 
-const CreateStripeAccount = async (email: string, country = 'US', ip: string) => {
+const CreateStripeAccount = async (
+    email: string,
+    country: string = 'US',
+    ip: string,
+    firstName: string,
+    lastName: string,
+    businessUrl?: string
+) => {
+    if (!firstName || !lastName) {
+        throw new AppError(httpStatus.BAD_REQUEST, "First name and last name are required");
+    }
+
     const account = await stripe.accounts.create({
         type: 'custom',
-        email: email,
-        country: country,
-        capabilities: {
-            transfers: { requested: true },
-            card_issuing: { requested: true, },
-        },
+        country,
+        email,
         business_type: 'individual',
-        tos_acceptance: {
-            date: Math.floor(Date.now() / 1000)!,
-            ip: ip!
+        individual: {
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            // Optional: Add DOB if you collect it later via update
         },
-    })
+        business_profile: {
+            url: businessUrl || `https://arkive.com/brands`,
+            mcc: '5651',
+        },
+        capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+        },
+        tos_acceptance: {
+            date: Math.floor(Date.now() / 1000),
+            ip,
+        },
+        metadata: {
+            created_from: 'https://arkive.com',
+        },
+    });
 
-    console.log("stripe account:", account);
-    return account.id
-}
+    console.log("Created Stripe account:", account.id);
+    return account.id;
+};
 
-const CreatePayout = async (amount: number, currency = "USD", destination: string) => {
-    const payout = await stripe.transfers.create({
+const CreatePayout = async (amount: number, currency = "usd", destination: string, accountId: string) => {
+    const payout = await stripe.payouts.create({
         amount: Math.round(amount * 100),
-        currency: currency,
-        destination: destination
-    })
+        currency: currency.toLowerCase(),
+    }, {
+        stripeAccount: accountId,
+    });
+
+    console.log("payout:", payout)
 
     if (!payout) {
         throw new AppError(httpStatus.EXPECTATION_FAILED, "Failed withdraw")
@@ -94,6 +120,8 @@ const IsAccountReady = async (accountId: string) => {
         account.capabilities?.transfers === "active" &&
         (!account.requirements?.currently_due || account.requirements.currently_due.length === 0);
 
+    console.log("ready:", account)
+
     return {
         ready,
         status: {
@@ -103,6 +131,29 @@ const IsAccountReady = async (accountId: string) => {
             requirements_due: account.requirements?.currently_due || [],
         },
     };
+}
+
+interface IBankAccount {
+    country: string,
+    currency: string,
+    account_holder_name: string,
+    account_holder_type: 'individual' | 'company',
+    routing_number: string,
+    account_number: string,
+}
+
+const CreateBankToken = async (data: IBankAccount) => {
+    const token = await stripe.tokens.create({
+        bank_account: {
+            country: data.country,
+            currency: data.currency,
+            account_holder_name: data.account_holder_name,
+            account_holder_type: data.account_holder_type,
+            routing_number: data.routing_number,
+            account_number: data.account_number,
+        }
+    });
+    return token.id
 }
 
 // const createSubscription = async (payload: ICreateSubscription) => {
@@ -123,7 +174,8 @@ const StripeUtils = {
     CreateStripeAccount,
     CreatePayout,
     CreateExternalAccount,
-    IsAccountReady
+    IsAccountReady,
+    CreateBankToken
     // createSubscription
 }
 export default StripeUtils;
