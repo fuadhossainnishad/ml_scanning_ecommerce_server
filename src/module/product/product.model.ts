@@ -1,6 +1,7 @@
 import { model, Model, Schema } from "mongoose";
 // import MongooseHelper from "../../utility/mongoose.helpers";
 import { IMeasurement, IProduct, TSize } from "./product.interface";
+import MongooseHelper from "../../utility/mongoose.helpers";
 
 
 const MeasurementSchema = new Schema<IMeasurement>({
@@ -63,8 +64,8 @@ const ProductSchema = new Schema<IProduct>({
   { timestamps: true }
 );
 
-// MongooseHelper.applyToJSONTransform(ProductSchema);
-// MongooseHelper.findExistence<IProduct>(ProductSchema);
+MongooseHelper.applyToJSONTransform(ProductSchema);
+MongooseHelper.findExistence<IProduct>(ProductSchema);
 
 const Product: Model<IProduct> = model<IProduct>('Product', ProductSchema);
 

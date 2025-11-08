@@ -9,6 +9,7 @@ import { ICart } from "./cart.interface";
 import { idConverter } from "../../utility/idConverter";
 import QueryBuilder from "../../app/builder/QueryBuilder";
 import CartServices from "./cart.services";
+import Product from "../product/product.model";
 
 const uploadCart: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
@@ -35,6 +36,15 @@ const uploadCart: RequestHandler = catchAsync(async (req, res) => {
   }
 
   const convertedProductId = await idConverter(productId);
+  const isExistProduct = await Product.exists({ _id: convertedProductId, isDeleted: false })
+  console.log("isExistProduct:", isExistProduct)
+  if (!isExistProduct) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Invalid product, please select a valid product",
+      ""
+    );
+  }
   const numQuantity = Number(quantity);
 
   console.log("Cart data:", {

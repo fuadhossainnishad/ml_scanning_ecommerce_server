@@ -82,7 +82,7 @@ const CreateStripeAccount = async (
     return account.id;
 };
 
-const CreatePayout = async (amount: number, currency = "usd", destination: string, accountId: string) => {
+const CreatePayout = async (amount: number, currency = "usd", accountId: string) => {
     const payout = await stripe.payouts.create({
         amount: Math.round(amount * 100),
         currency: currency.toLowerCase(),

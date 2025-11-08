@@ -80,7 +80,7 @@ const CreateWithdraw: RequestHandler = catchAsync(async (req, res) => {
     let withdrawStatus = WithdrawStatus.PENDING;
 
     try {
-        await StripeUtils.CreatePayout(amount, currencyCode, bankAccount.id, stripeAccountId);
+        await StripeUtils.CreatePayout(amount, currencyCode, stripeAccountId);
         withdrawStatus = WithdrawStatus.SUCCESS;
     } catch (err) {
         throw new AppError(httpStatus.BAD_REQUEST, `Payout failed & ${err}`);

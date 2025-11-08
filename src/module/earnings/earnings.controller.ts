@@ -2,12 +2,12 @@ import { RequestHandler, NextFunction } from "express"
 import catchAsync from "../../utility/catchAsync"
 import httpStatus from 'http-status';
 import AppError from "../../app/error/AppError";
-import { WithdrawStatus } from "./earnings.interface";
 import Earning from "./earnings.model";
 import { SellerStatus } from "../order/order.interface";
 import Order from "../order/order.model";
 import sendResponse from "../../utility/sendResponse";
 import { PipelineStage } from "mongoose";
+import StripeServices from "../stripe/stripe.service";
 
 
 interface MonthlyEarnings {
@@ -22,6 +22,7 @@ const insertEarning: RequestHandler = catchAsync(async (req, res, next: NextFunc
         return next();
     }
 
+    const { stripe_accounts_id } = req.user
     const { orderUpdateData } = req.body.data;
     const { updatedOrders, brandId } = orderUpdateData;
 
@@ -31,22 +32,26 @@ const insertEarning: RequestHandler = catchAsync(async (req, res, next: NextFunc
         throw new AppError(httpStatus.BAD_REQUEST, "Invalid order data for earnings update");
     }
 
-    let totalEarningAmount = 0;
-
+    let deliveredAmount = 0
     for (const item of updatedOrders.data) {
-        totalEarningAmount += (item.discountPrice || 0) * (item.quantity || 0);
+        deliveredAmount += (item.discountPrice || 0) * (item.quantity || 0);
+    }
+
+    const transfer = await StripeServices.createTransfer(deliveredAmount, 'usd', stripe_accounts_id)
+
+    if (!transfer) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Failed to add order earnings ");
     }
 
     const updatedEarnings = await Earning.findOneAndUpdate(
         { brandId },
         {
             $inc: {
-                totalEarnings: totalEarningAmount,
-                available: totalEarningAmount,
+                totalEarnings: deliveredAmount,
+                available: deliveredAmount,
             },
             $set: {
                 updatedAt: new Date(),
-                withdrawStatus: WithdrawStatus.NONE,
             },
         },
         {
@@ -60,7 +65,7 @@ const insertEarning: RequestHandler = catchAsync(async (req, res, next: NextFunc
         throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update earnings");
     }
 
-    console.log(`Added $${totalEarningAmount} to brand ${brandId} earnings. New total: $${updatedEarnings.totalEarnings}`);
+    console.log(`Added $${deliveredAmount} to brand ${brandId} earnings. New total: $${updatedEarnings.totalEarnings}`);
     console.log("updatedEarnings", updatedEarnings);
 });
 

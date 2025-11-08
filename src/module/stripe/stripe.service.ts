@@ -141,6 +141,21 @@ const createEphimeralKey = async (customer: string) => {
   return ephemeralKey.secret
 }
 
+const createTransfer = async (amount: number, currency: string, acc_id: string) => {
+  const transfer = await stripe.transfers.create({
+    amount: Math.round(Number(amount) * 100),
+    currency: currency || "usd",
+    destination: acc_id,
+    description: "Payment to Brand for completed order",
+  });
+
+  if (!transfer.id) {
+    throw new AppError(httpStatus.NOT_FOUND, "Money transfer for the orderr failed");
+  }
+
+  return transfer.id
+}
+
 const StripeServices = {
   createPaymentIntentService,
   createStripeProductId,
@@ -149,6 +164,7 @@ const StripeServices = {
   attachPaymentMethodService,
   listPaymentMethodsService,
   CreateSetupIntent,
-  createEphimeralKey
+  createEphimeralKey,
+  createTransfer
 };
 export default StripeServices;

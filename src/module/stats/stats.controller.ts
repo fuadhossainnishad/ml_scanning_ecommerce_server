@@ -11,6 +11,7 @@ import Order from "../order/order.model";
 import { PipelineStage, Types } from "mongoose";
 import Earning from "../earnings/earnings.model";
 import Cart from "../cart/cart.model";
+import axios from "axios";
 
 interface MonthlyOrders {
     month: string; // e.g., "Jan"
@@ -23,6 +24,41 @@ interface BrandStats {
     totalReviews: number;
     totalProducts: number
 }
+
+const scanning: RequestHandler = catchAsync(async (req, res) => {
+    if (req.body.scan.length < 1) {
+        throw new AppError(httpStatus.NOT_ACCEPTABLE, "No scanning image come from your scanner");
+    }
+
+    const { scan } = req.body
+    const response = await axios.post("http://localhost:9000/scan", {
+        file: scan[0],
+    });
+
+    if (response.status === 404) {
+        throw new AppError(httpStatus.NOT_ACCEPTABLE, "Scanning server not responed");
+    }
+
+    console.log("scan:", response.data)
+
+    if (response.data.length === 0) {
+        sendResponse(res, {
+            success: true,
+            statusCode: httpStatus.CREATED,
+            message: "No matching found",
+            data: [],
+        });
+    }
+
+
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "successfully findout matching products",
+        data: "result",
+    });
+})
 
 const appFirstStats: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
@@ -333,6 +369,7 @@ const getBrandStats: RequestHandler = catchAsync(async (req, res) => {
 
 
 const StatsController = {
+    scanning,
     appFirstStats,
     getRelatedBrands,
     getMonthlyProductOrders,
