@@ -12,6 +12,8 @@ import { PipelineStage, Types } from "mongoose";
 import Earning from "../earnings/earnings.model";
 import Cart from "../cart/cart.model";
 import axios from "axios";
+import FormData from "form-data";
+import { idConverter } from "../../utility/idConverter";
 
 interface MonthlyOrders {
     month: string; // e.g., "Jan"
@@ -26,20 +28,43 @@ interface BrandStats {
 }
 
 const scanning: RequestHandler = catchAsync(async (req, res) => {
-    if (req.body.scan.length < 1) {
-        throw new AppError(httpStatus.NOT_ACCEPTABLE, "No scanning image come from your scanner");
-    }
+    // if (req.body.scan.length < 1) {
+    //     throw new AppError(httpStatus.NOT_ACCEPTABLE, "No scanning image come from your scanner");
+    // }
 
-    const { scan } = req.body
-    const response = await axios.post("http://localhost:9000/scan", {
-        file: scan[0],
+    const { scan } = req.body.data
+    const product_id = "68ffafebca4d62915039e7e0"
+    const category = "clothes"
+    const top_k = 5
+
+    const fileResponse = await axios.get(scan[0], { responseType: "arraybuffer" });
+    const fileBuffer = Buffer.from(fileResponse.data);
+    console.log("receive file")
+
+    // Create form-data
+    const formData = new FormData();
+    formData.append("file", fileBuffer, {
+        filename: "scan.jpg",
+        contentType: "image/jpeg"
     });
+
+    const response = await axios.post(
+        `http://127.0.0.1:9000/api/v1/scan?product_id=${product_id}&category=${category}&top_k=${top_k}`,
+        formData,
+        {
+            headers: formData.getHeaders()
+        }
+    );
+    console.log("scan sending file")
 
     if (response.status === 404) {
         throw new AppError(httpStatus.NOT_ACCEPTABLE, "Scanning server not responed");
     }
 
     console.log("scan:", response.data)
+    console.log("scan:", response.data.results)
+
+
 
     if (response.data.length === 0) {
         sendResponse(res, {
@@ -50,20 +75,83 @@ const scanning: RequestHandler = catchAsync(async (req, res) => {
         });
     }
 
+    const scanResults = response.data.results || [];
 
+    if (scanResults.length === 0) {
+        return sendResponse(res, {
+            success: true,
+            statusCode: httpStatus.OK,
+            message: "No matching products found",
+            data: [],
+        });
+    }
 
-    sendResponse(res, {
+    // Convert product IDs using idConverter
+    const convertedIds = await Promise.all(
+        scanResults.map(async (item: any) => {
+            try {
+                const converted = await idConverter(item.metadata?.product_id);
+                return converted
+            } catch (err) {
+                console.error("Error converting product ID:", item.metadata?.product_id, err);
+                return null;
+            }
+        })
+    );
+
+    // Remove nulls and duplicates
+    const productIds = Array.from(new Set(convertedIds.filter(Boolean)));
+
+    if (productIds.length === 0) {
+        return sendResponse(res, {
+            success: true,
+            statusCode: httpStatus.OK,
+            message: "No valid product IDs found",
+            data: [],
+        });
+    }
+
+    console.log("🟢 Extracted product IDs:", productIds);
+
+    // Query MongoDB for matching products
+    const matchedProducts = await Product.find({
+        _id: { $in: productIds },
+        isDeleted: { $ne: true },
+    }).lean();
+
+    console.log("matchedProducts:", matchedProducts);
+
+    return sendResponse(res, {
         success: true,
-        statusCode: httpStatus.CREATED,
-        message: "successfully findout matching products",
-        data: "result",
+        statusCode: httpStatus.OK,
+        message: "Successfully found matching products",
+        data: matchedProducts,
     });
-})
+});
 
 const appFirstStats: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
         throw new AppError(httpStatus.NOT_ACCEPTABLE, "Authenticated user is required");
     }
+
+    const result = await StatsServices.fetchAggregationTwo<IBrand>(Brand, ["brandName", "brandLogo", "theme"], req.query)
+    console.log("appFirstStats:", result)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "successfully retrieve brandlist",
+        data: result,
+    });
+})
+
+const appFirstStatsTwo: RequestHandler = catchAsync(async (req, res) => {
+    if (!req.user) {
+        throw new AppError(httpStatus.NOT_ACCEPTABLE, "Authenticated user is required");
+    }
+
+    // const query = {
+    //     ...req.query,
+    // }
 
     const result = await StatsServices.fetchAggregation<IBrand>(Brand, ["brandName", "brandLogo", "theme"], req.query)
     console.log("appFirstStats:", result)
@@ -371,6 +459,7 @@ const getBrandStats: RequestHandler = catchAsync(async (req, res) => {
 const StatsController = {
     scanning,
     appFirstStats,
+    appFirstStatsTwo,
     getRelatedBrands,
     getMonthlyProductOrders,
     getBrandStats

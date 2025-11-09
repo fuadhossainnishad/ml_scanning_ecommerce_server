@@ -9,7 +9,7 @@ const router = express.Router()
 router
     .route('/scan')
     .post(
-        auth('User'),
+        // auth('User'),
         upload.fields([{ name: 'scan', maxCount: 1 }]),
         fileHandle('scan'),
         StatsController.scanning
@@ -19,7 +19,8 @@ router
     .route('/brandlist')
     .get(
         auth('User', 'Brand'),
-        StatsController.appFirstStats
+        StatsController.appFirstStats,
+        // StatsController.appFirstStatsTwo
     );
 
 router.get(

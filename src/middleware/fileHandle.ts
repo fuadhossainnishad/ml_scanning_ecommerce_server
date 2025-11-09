@@ -6,6 +6,9 @@ import AppError from "../app/error/AppError";
 export const fileHandle = (fieldName: string): RequestHandler =>
   catchAsync(async (req, res, next) => {
     console.log("string data:", req.body.data);
+    if (!req.body.data) {
+      req.body.data = {};
+    }
     if (typeof req.body.data === "string") {
       try {
         req.body.data = JSON.parse(req.body.data);

@@ -99,7 +99,7 @@ const getAllProduct: RequestHandler = catchAsync(async (req, res) => {
   const result = await GenericService.findAllResources<IProduct>(
     Product,
     req.query,
-    []
+    ["category", "productName", "shortDescription"]
   );
 
   sendResponse(res, {

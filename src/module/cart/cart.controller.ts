@@ -36,7 +36,9 @@ const uploadCart: RequestHandler = catchAsync(async (req, res) => {
   }
 
   const convertedProductId = await idConverter(productId);
-  const isExistProduct = await Product.exists({ _id: convertedProductId, isDeleted: false })
+  console.log("convertedProductId:", convertedProductId)
+
+  const isExistProduct = await Product.findById(convertedProductId)
   console.log("isExistProduct:", isExistProduct)
   if (!isExistProduct) {
     throw new AppError(

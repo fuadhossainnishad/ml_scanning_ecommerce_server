@@ -198,6 +198,12 @@ const test: RequestHandler = catchAsync(async (req, res) => {
             enabled: true,
         },
     });
+
+    console.log("paymentIntent:", paymentIntent.client_secret)
+    console.log("ephemeralKey:", ephemeralKey)
+    console.log("customerId:", customerId)
+    console.log("publishableKey:", config.stripe.publishKey)
+
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,

@@ -1,4 +1,7 @@
 import { Model } from 'mongoose';
+import AggregationQueryBuilder from '../../app/builder/Builder';
+import { IBrand } from '../brand/brand.interface';
+import Brand from '../brand/brand.model';
 
 export interface IPaginationMeta {
     page: number;
@@ -27,6 +30,31 @@ export interface IAggregationResponse<T> {
 }
 
 const fetchAggregation = async <T>(Model: Model<T>, projects: string[], query: Record<string, unknown>): Promise<IAggregationResponse<T>> => {
+    // const { page, limit, skip } = calculatePagination(query);
+
+    // const projectFields: { [key: string]: number } = projects.reduce((acc, field) => {
+    //     acc[field] = 1;
+    //     return acc;
+    // }, {} as { [key: string]: number });
+
+    // const total = await Model.countDocuments();
+
+    // Use AggregationQueryBuilder
+    const builder = new AggregationQueryBuilder<IBrand>(Brand, query)
+        .search(["brandName", "theme"])
+        .filter()
+        .sort()
+        .fields();
+
+    const meta = await builder.countTotal()
+    const result = await builder.execute();
+
+    return {
+        meta: buildMeta(meta.page, meta.limit, meta.total),
+        data: result as T[],
+    };
+};
+const fetchAggregationTwo = async <T>(Model: Model<T>, projects: string[], query: Record<string, unknown>): Promise<IAggregationResponse<T>> => {
     const { page, limit, skip } = calculatePagination(query);
 
     const projectFields: { [key: string]: number } = projects.reduce((acc, field) => {
@@ -47,9 +75,9 @@ const fetchAggregation = async <T>(Model: Model<T>, projects: string[], query: R
         data: result as T[],
     };
 };
-
 const StatsServices = {
     fetchAggregation,
+    fetchAggregationTwo
 };
 
 export default StatsServices;
