@@ -36,8 +36,8 @@ const insertEarning: RequestHandler = catchAsync(async (req, res, next: NextFunc
     for (const item of updatedOrders.data) {
         deliveredAmount += (item.discountPrice || 0) * (item.quantity || 0);
     }
-
-    const transfer = await StripeServices.createTransfer(deliveredAmount, 'usd', stripe_accounts_id)
+    const totalDeliveredAmount = Math.round(Number(deliveredAmount * 90 / 100))
+    const transfer = await StripeServices.createTransfer(totalDeliveredAmount, 'usd', stripe_accounts_id)
 
     if (!transfer) {
         throw new AppError(httpStatus.BAD_REQUEST, "Failed to add order earnings ");
@@ -327,12 +327,13 @@ const getEarningsSummary: RequestHandler = catchAsync(async (req, res) => {
 
     const monthlyResult = await Order.aggregate(monthlyPipeline);
     const monthlyEarning = monthlyResult.length > 0 ? monthlyResult[0].monthlyEarning : 0;
+    const available = (earning?.totalEarnings || 0) - (earning?.totalWithdraw || 0)
 
     const summary = {
         totalEarning: earning?.totalEarnings || 0,
         monthlyEarning,
         totalPending: earning?.withdrawPending || 0,
-        totalWithdraw: earning?.totalWithdraw || 0,
+        available: available || 0,
     };
 
     sendResponse(res, {

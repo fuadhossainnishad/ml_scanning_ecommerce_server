@@ -23,11 +23,12 @@ router
         // StatsController.appFirstStatsTwo
     );
 
-router.get(
-    '/orders',
-    auth('Brand'),
-    StatsController.getBrandStats
-)
+router
+    .get(
+        '/orders',
+        auth('Brand'),
+        StatsController.getBrandStats
+    )
     .get('/earnings',
         auth('Brand'),
         EarningsController.getEarningsSummary

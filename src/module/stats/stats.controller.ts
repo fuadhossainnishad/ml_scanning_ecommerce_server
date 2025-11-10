@@ -11,8 +11,6 @@ import Order from "../order/order.model";
 import { PipelineStage, Types } from "mongoose";
 import Earning from "../earnings/earnings.model";
 import Cart from "../cart/cart.model";
-import axios from "axios";
-import FormData from "form-data";
 import { idConverter } from "../../utility/idConverter";
 
 interface MonthlyOrders {
@@ -33,36 +31,9 @@ const scanning: RequestHandler = catchAsync(async (req, res) => {
     // }
 
     const { scan } = req.body.data
-    const product_id = "68ffafebca4d62915039e7e0"
-    const category = "clothes"
-    const top_k = 5
 
-    const fileResponse = await axios.get(scan[0], { responseType: "arraybuffer" });
-    const fileBuffer = Buffer.from(fileResponse.data);
-    console.log("receive file")
 
-    // Create form-data
-    const formData = new FormData();
-    formData.append("file", fileBuffer, {
-        filename: "scan.jpg",
-        contentType: "image/jpeg"
-    });
-
-    const response = await axios.post(
-        `http://127.0.0.1:9000/api/v1/scan?product_id=${product_id}&category=${category}&top_k=${top_k}`,
-        formData,
-        {
-            headers: formData.getHeaders()
-        }
-    );
-    console.log("scan sending file")
-
-    if (response.status === 404) {
-        throw new AppError(httpStatus.NOT_ACCEPTABLE, "Scanning server not responed");
-    }
-
-    console.log("scan:", response.data)
-    console.log("scan:", response.data.results)
+    const response = await StatsServices.embeddingServices({ file: scan })
 
 
 

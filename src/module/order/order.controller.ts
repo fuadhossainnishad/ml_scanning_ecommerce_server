@@ -113,12 +113,7 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
     const result = await OrderServices.getOrderService(req)
 
 
-    sendResponse(res, {
-        success: true,
-        statusCode: httpStatus.CREATED,
-        message: "Successfully update the order status",
-        data: result,
-    });
+
 
     if (nextSellerStatus === SellerStatus.DELIVERED) {
         req.body.data.orderUpdateData = {
@@ -128,6 +123,12 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
         };
         next()
     }
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Successfully update the order status",
+        data: result,
+    });
 })
 
 const OrderController = {

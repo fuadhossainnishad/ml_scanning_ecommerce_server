@@ -2,6 +2,10 @@ import { Model } from 'mongoose';
 import AggregationQueryBuilder from '../../app/builder/Builder';
 import { IBrand } from '../brand/brand.interface';
 import Brand from '../brand/brand.model';
+import axios from 'axios';
+import FormData from 'form-data';
+import AppError from '../../app/error/AppError';
+import httpStatus from 'http-status';
 
 export interface IPaginationMeta {
     page: number;
@@ -54,6 +58,7 @@ const fetchAggregation = async <T>(Model: Model<T>, projects: string[], query: R
         data: result as T[],
     };
 };
+
 const fetchAggregationTwo = async <T>(Model: Model<T>, projects: string[], query: Record<string, unknown>): Promise<IAggregationResponse<T>> => {
     const { page, limit, skip } = calculatePagination(query);
 
@@ -75,9 +80,56 @@ const fetchAggregationTwo = async <T>(Model: Model<T>, projects: string[], query
         data: result as T[],
     };
 };
+
+interface IEmbeddings {
+    file: string[],
+    product_id?: string,
+    category?: string,
+    top_k?: number
+}
+
+const embeddingServices = async (payload: IEmbeddings) => {
+    const fileResponse = await axios.get(payload.file[0], { responseType: "arraybuffer" });
+    const fileBuffer: Buffer = Buffer.from(fileResponse.data);
+    console.log("receive file")
+
+    // Create form-data
+    const formData = new FormData();
+    formData.append("file", fileBuffer, {
+        filename: "scan.jpg",
+        contentType: "image/jpeg"
+    });
+
+    const url = new URL("http://127.0.0.1:9000/api/v1/scan");
+    if (payload.product_id) url.searchParams.append("product_id", payload.product_id);
+    if (payload.category) url.searchParams.append("category", payload.category);
+    if (payload.top_k) url.searchParams.append("top_k", payload.top_k.toString());
+
+    console.log("🚀 Sending file to scanning service...");
+
+    const response = await axios.post(
+        url.toString(),
+        formData,
+        {
+            headers: formData.getHeaders()
+        }
+    );
+    console.log("sending file")
+
+    if (response.status !== 200) {
+        throw new AppError(httpStatus.NOT_ACCEPTABLE, "Scanning server not responed");
+    }
+
+    console.log("scan:", response.data)
+    console.log("scan:", response.data.results)
+
+    return response
+}
+
 const StatsServices = {
     fetchAggregation,
-    fetchAggregationTwo
+    fetchAggregationTwo,
+    embeddingServices
 };
 
 export default StatsServices;
