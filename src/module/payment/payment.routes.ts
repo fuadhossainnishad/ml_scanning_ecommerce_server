@@ -8,7 +8,7 @@ const router = express.Router();
 router.post(
     '/card',
     auth('User'),
-    PaymentController.paymentWithSaveCard
+    PaymentController.paymentIntent
 );
 
 // router.post(

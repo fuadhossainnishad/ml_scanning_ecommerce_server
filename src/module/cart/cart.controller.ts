@@ -142,7 +142,8 @@ const getCart: RequestHandler = catchAsync(async (req, res) => {
       ""
     );
   }
-
+  const existCart = await Cart.find({ userId: req.user._id })
+  console.log("existCart details:", existCart);
   const result = await CartServices.getCartService(req);
 
   sendResponse(res, {

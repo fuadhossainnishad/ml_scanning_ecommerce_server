@@ -9,14 +9,16 @@ import { idConverter } from "../../utility/idConverter"
 
 const getOrderService = async (req: Request) => {
   const { _id, role } = req.user
-  const { cartProductId } = req.query
+  const { cartProductId, orderId } = req.query
   const query = {
     ...Object.fromEntries(
-      Object.entries(req.query).filter(([k]) => k !== 'cartProductId')
+      Object.entries(req.query).filter(([k]) => !['cartProductId', 'orderId'].includes(k))
     ),
     paymentStatus: PaymentStatus.PAID,
     ...(role === 'User' ? { userId: _id } : {}),
-    ...(cartProductId ? { "items.cartProductId": await idConverter(cartProductId as string) } : {})
+    ...(cartProductId ? { "items.cartProductId": await idConverter(cartProductId as string) } : {}),
+    ...(orderId ? { _id: await idConverter(orderId as string) } : {})
+
   }
   console.log("Query getOrderService:", query);
 
@@ -24,7 +26,7 @@ const getOrderService = async (req: Request) => {
   if (role === 'User') {
     const builder = new AggregationQueryBuilder(Order, query)
     builder.filter()
-    builder.search(["orderStatus", "items"])
+    builder.search(["orderStatus", "items.sellerStatus"])
 
     const addStages: PipelineStage[] = [
       {
@@ -292,6 +294,16 @@ const getOrderService = async (req: Request) => {
       // Filter out null orders
       { $match: { orderData: { $ne: null } } },
 
+      {
+        $lookup: {
+          from: "payments",
+          localField: "orderData._id",
+          foreignField: "orderId",
+          as: "payment"
+        }
+      },
+      { $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
+
       // Group by order to handle multiple products per order
       {
         $group: {
@@ -379,7 +391,10 @@ const getOrderService = async (req: Request) => {
                 orderId: "$order._id",
                 userId: "$order.userId",
                 cartId: "$order.cartId",
-                address: "$order.address"
+                address: "$order.address",
+                paymentMethod: { $ifNull: ["$payment.paymentStatus", "card"] },
+                paymentStatus: { $ifNull: ["$payment.paymentStatus", "pending"] },
+                totalAmount: { $ifNull: ["$payment.amount", "$order.totalAmount"] }
               }
             ]
           }

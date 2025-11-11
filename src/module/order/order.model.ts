@@ -122,13 +122,19 @@ const computeOrderStatus = (items: IOrder['items']): OrderStatus => {
         return OrderStatus.SHIPPED;
     }
     if (allReady) {
-        return OrderStatus.CONFIRM; // Assuming CONFIRM maps to "accepted"
+        return OrderStatus.CONFIRM;
     }
     return OrderStatus.PROCESSING;
 };
+
 OrderSchema.post('save', function (doc) {
-    doc.orderStatus = computeOrderStatus(doc.items)
-    doc.save()
+    if (doc.paymentStatus === 'pending') return;
+
+    const newStatus = computeOrderStatus(doc.items);
+    if (newStatus !== doc.orderStatus) {
+        doc.orderStatus = newStatus;
+        doc.save();
+    }
 })
 
 const Order: Model<IOrder> = model<IOrder>("Order", OrderSchema);

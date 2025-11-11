@@ -81,6 +81,111 @@ const paymentWithSaveCard: RequestHandler = catchAsync(async (req, res) => {
     });
 });
 
+const paymentIntent: RequestHandler = catchAsync(async (req, res) => {
+    if (!req.user) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Authenticated user is required",
+            ""
+        );
+    }
+    const existCart = await Cart.find({ userId: req.user._id })
+    console.log("existCart details:", existCart);
+
+    const findCart = await CartServices.getCartService(req);
+    console.log("cart details:", findCart);
+
+    if (!findCart) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "There are no products in the cart to order",
+            ""
+        );
+    }
+
+    if (Number(findCart.total) !== Number(req.body.data.amount)) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Amount mismatch",
+            ""
+        );
+    }
+
+    const orderItems = findCart.products.map((prod: IProductResponse) => ({
+        cartProductId: prod._id!,
+        sellerStatus: SellerStatus.MARK_READY,
+        remindStatus: RemindeStatus.PROCESSING,
+    }));
+
+    const orderData: IOrder = {
+        userId: req.user._id,
+        userType: req.user.role,
+        cartId: findCart._id!,
+        address: req.body.data.address,
+        items: orderItems,
+        orderStatus: OrderStatus.PROCESSING,
+        paymentStatus: PaymentStatus.PENDING,
+        isDeleted: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+    };
+
+    const order = await GenericService.insertResources<IOrder>(Order, orderData);
+
+    console.log("order:", order.order)
+    const customerId = await StripeUtils.checkCustomerId(req.user.stripe_customer_id, req.user.email);
+    if (!customerId) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Stripe customer ID is required",
+            ""
+        );
+    }
+    req.body.data.userId = req.user._id.toString();
+    req.body.data.stripe_customer_id = customerId;
+    req.body.data.orderId = order.order._id.toString();
+    req.body.data.cartId = order.order.cartId.toString();
+    console.log("data:", req.body.data)
+    const metadata = {
+        address: JSON.stringify(req.body.data.address),
+        userId: req.user.userId,
+        stripe_customer_id: customerId,
+        orderId: order.order._id.toString(),
+        cartId: order.order.cartId.toString()
+    }
+
+
+    // const result = await StripeServices.createPaymentIntentService(req.body.data);
+
+    const ephemeralKey = await StripeServices.createEphimeralKey(customerId);
+    const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(Number(req.body.data.amount) * 100),
+        currency: 'usd',
+        customer: customerId,
+        metadata,
+        automatic_payment_methods: {
+            enabled: true,
+        },
+    });
+
+    console.log("paymentIntent:", paymentIntent.client_secret)
+    console.log("ephemeralKey:", ephemeralKey)
+    console.log("customerId:", customerId)
+    console.log("publishableKey:", config.stripe.publishKey)
+
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Payment is processing",
+        data: {
+            paymentIntent: paymentIntent.client_secret,
+            ephemeralKey: ephemeralKey,
+            customer: customerId,
+            publishableKey: config.stripe.publishKey!
+        },
+    });
+});
 
 const webhooks: RequestHandler = catchAsync(async (req, res) => {
     const sig = req.headers["stripe-signature"]!
@@ -104,6 +209,8 @@ const webhooks: RequestHandler = catchAsync(async (req, res) => {
     } else if (payment_method && typeof payment_method === "object" && "id" in payment_method) {
         paymentMethodId = payment_method.id;
     }
+
+
 
     const paymentPayload: IPayment = {
         userId: await idConverter(metadata.userId),
@@ -322,6 +429,7 @@ const payment: RequestHandler = catchAsync(async (req, res) => {
 
 const PaymentController = {
     paymentWithSaveCard,
+    paymentIntent,
     webhooks,
     test,
     payment

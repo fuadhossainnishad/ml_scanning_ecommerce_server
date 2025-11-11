@@ -6,8 +6,11 @@ import { Request } from "express";
 
 const getCartService = async (req: Request) => {
   const { _id } = req.user
+
+  console.log("_id:", _id)
+
   const result = await Cart.aggregate([
-    { $match: { userId: await idConverter(_id), isDeleted: false } },
+    { $match: { userId: _id!, isDeleted: false } },
     { $unwind: "$products" },
     {
       $lookup: {
