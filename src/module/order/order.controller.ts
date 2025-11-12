@@ -131,8 +131,27 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
     });
 })
 
+const getTransaction: RequestHandler = catchAsync(async (req, res) => {
+    if (req.user.role !== 'Brand') {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Authenticated brand is required",
+        );
+    }
+
+    const result = await OrderServices.getTransactionService(req)
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "Successfully earning status",
+        data: result,
+    });
+})
+
 const OrderController = {
     getOrders,
-    updateStatus
+    updateStatus,
+    getTransaction
 }
 export default OrderController

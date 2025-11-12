@@ -24,6 +24,13 @@ router
         EarningsController.insertEarning
     )
 
+router
+    .route('/transaction')
+    .get(
+        auth('Brand'),
+        OrderController.getTransaction,
+        // EarningsController.insertEarning
+    )
 
 const OrderRouter = router
 export default OrderRouter
