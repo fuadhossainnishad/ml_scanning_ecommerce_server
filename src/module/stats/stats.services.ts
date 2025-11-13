@@ -6,6 +6,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import AppError from '../../app/error/AppError';
 import httpStatus from 'http-status';
+import config from '../../app/config';
 
 export interface IPaginationMeta {
     page: number;
@@ -100,7 +101,7 @@ const embeddingServices = async (payload: IEmbeddings) => {
         contentType: "image/jpeg"
     });
 
-    const url = new URL("http://127.0.0.1:9000/api/v1/scan");
+    const url = new URL(config.scanning_url);
     if (payload.product_id) url.searchParams.append("product_id", payload.product_id);
     if (payload.category) url.searchParams.append("category", payload.category);
     if (payload.top_k) url.searchParams.append("top_k", payload.top_k.toString());
