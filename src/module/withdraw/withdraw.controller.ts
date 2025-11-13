@@ -16,7 +16,7 @@ const CreateWithdraw: RequestHandler = catchAsync(async (req, res) => {
         throw new AppError(httpStatus.UNAUTHORIZED, "Authenticated brand is required");
     }
 
-    const { email, _id, stripe_accounts_id } = req.user;
+    const { email, _id, stripe_accounts_id, brandName } = req.user;
     const {
         amount,
         currency,
@@ -32,7 +32,7 @@ const CreateWithdraw: RequestHandler = catchAsync(async (req, res) => {
     // Step 1: Ensure Stripe account exists
     let stripeAccountId = stripe_accounts_id;
     if (!stripeAccountId || stripeAccountId === "") {
-        stripeAccountId = await StripeUtils.CreateStripeAccount(email, country.toUpperCase(), req.ip!, "account_holder_name", "account_holder_name");
+        stripeAccountId = await StripeUtils.CreateStripeAccount(email, country.toUpperCase(), req.ip!, brandName);
         await GenericService.updateResources<IBrand>(Brand, _id, { stripe_accounts_id: stripeAccountId });
     }
     console.log("stripeAccountId:", stripeAccountId)

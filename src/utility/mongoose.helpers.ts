@@ -1,4 +1,4 @@
-import mongoose, { Query, Schema, UpdateQuery } from "mongoose";
+import mongoose, { Query, Schema, Types, UpdateQuery } from "mongoose";
 import PasswordUtils from "./password.utils";
 import { idConverter } from "./idConverter";
 import AppError from "../app/error/AppError";
@@ -21,8 +21,13 @@ const preSaveHashPassword = (schema: Schema) => {
     next();
   });
 };
-
-const preSaveConjugate = <T>(schema: Schema) => {
+interface IUser {
+  role?: string;
+  firstName?: string;
+  lastName?: string;
+  userName?: string;
+}
+const preSaveConjugate = <T extends IUser>(schema: Schema) => {
   schema.pre<T>("save", async function (next) {
     if (this.role !== "Brand") {
       if (this.firstName && this.lastName) {
@@ -83,7 +88,7 @@ const applyToJSONTransform = (schema: Schema) => {
     virtuals: true,
     versionKey: false,
     transform: function (doc, ret) {
-      ret.id = doc._id.toString();
+      ret.id = (doc._id as Types.ObjectId).toString();
       delete ret._id;
       delete ret.password;
       return ret;

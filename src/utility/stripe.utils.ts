@@ -43,12 +43,11 @@ const CreateStripeAccount = async (
     email: string,
     country: string = 'US',
     ip: string,
-    firstName: string,
-    lastName: string,
+    brandName: string,
     businessUrl?: string
 ) => {
-    if (!firstName || !lastName) {
-        throw new AppError(httpStatus.BAD_REQUEST, "First name and last name are required");
+    if (!brandName) {
+        throw new AppError(httpStatus.BAD_REQUEST, "Brand Name are required");
     }
 
     const account = await stripe.accounts.create({
@@ -57,8 +56,8 @@ const CreateStripeAccount = async (
         email,
         business_type: 'individual',
         individual: {
-            first_name: firstName.trim(),
-            last_name: lastName.trim(),
+            first_name: brandName.trim(),
+            last_name: brandName.trim(),
             // Optional: Add DOB if you collect it later via update
         },
         business_profile: {

@@ -30,7 +30,8 @@ const BrandSchema: Schema = new Schema<IBrand>(
     },
     stripe_accounts_id: {
       type: String,
-      required: true
+      required: true,
+      default: ""
     },
   }
   , { timestamps: true, collection: "brands" }

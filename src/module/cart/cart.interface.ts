@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { TSize } from "../product/product.interface";
 
 export interface IProducts {
+  _id?: Types.ObjectId;
   productId: Types.ObjectId
   color: string
   size: TSize

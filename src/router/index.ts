@@ -5,7 +5,7 @@ import UserRouter from "../module/user/user.routes";
 import AdminRouter from "../module/admin/admin.routes";
 import NotificationRouter from "../module/notification/notification.routes";
 import SettingsRouter from "../module/settings/settings.routes";
-import SubscriptionRouter from "../module/subscription/subscription.routes";
+// import SubscriptionRouter from "../module/subscription/subscription.routes";
 import ProductRouter from "../module/product/product.routes";
 import PostRouter from "../module/post/post.routes";
 import StatsRouter from "../module/stats/stats.routes";
@@ -50,7 +50,7 @@ const moduleRoutes = [
   { path: "/savepost", route: SavePostRouter },
   { path: "/settings", route: SettingsRouter },
   { path: "/stats", route: StatsRouter },
-  { path: "/subscription", route: SubscriptionRouter },
+  // { path: "/subscription", route: SubscriptionRouter },
   { path: "/withdraw", route: WithdrawRouter },
   { path: "/notification", route: NotificationRouter },
 ];

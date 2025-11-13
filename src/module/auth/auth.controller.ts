@@ -27,7 +27,7 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
   }
 
   if (role === 'Brand') {
-    req.body.data.stripe_accounts_id = await StripeUtils.CreateStripeAccount(email, 'US', req.ip!)
+    req.body.data.stripe_accounts_id = await StripeUtils.CreateStripeAccount(email, 'US', req.ip!, req.body.data.brandName);
   }
 
   let result
