@@ -7,7 +7,7 @@ const FollowBaseSchema: Schema = new Schema<IFollowBase>({
     type: Schema.Types.ObjectId,
     refPath: 'type',
     required: true,
-    unique: true
+    // unique: true
   },
   type: {
     type: String,

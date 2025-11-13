@@ -244,6 +244,8 @@ const getPostService = async (req: Request) => {
     const userIdStr = req.user?._id?.toString() || null;
     const userRole = req.user?.role || null;
 
+    console.log("Get post id:", userIdStr)
+
     const builder = new AggregationQueryBuilder(Post, req.query);
 
     builder.filter();

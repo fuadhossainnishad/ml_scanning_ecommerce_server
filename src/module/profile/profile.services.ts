@@ -17,14 +17,21 @@ const getProfileService = async (req: Request) => {
     if (!req.params.id) {
         userId = currentUserId;
         userRole = currentUserRole;
+        console.log("profile id:", userId)
+
     } else {
         userId = await idConverter(req.params.id);
         const findExist = await Admin.findById(userId);
+
+        console.log("profile id:", userId)
+
         if (!findExist) {
             throw new AppError(httpStatus.NOT_FOUND, "User/Brand not found");
         }
         userRole = findExist.role;
     }
+    
+    console.log("final profile id:", userId)
 
     const QueryModel = getRoleModels(userRole);
 
