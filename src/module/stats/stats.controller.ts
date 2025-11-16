@@ -33,7 +33,7 @@ const scanning: RequestHandler = catchAsync(async (req, res) => {
     const { scan } = req.body.data
 
 
-    const response = await StatsServices.embeddingServices({ file: scan })
+    const response = await StatsServices.scanningServices(scan)
 
 
 

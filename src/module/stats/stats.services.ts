@@ -84,11 +84,46 @@ const fetchAggregationTwo = async <T>(Model: Model<T>, projects: string[], query
 
 interface IEmbeddings {
     file: string[],
-    product_id?: string,
-    category?: string,
+    product_id: string,
+    category: string,
     top_k?: number
 }
 
+const scanningServices = async (scan: string[]) => {
+    const fileResponse = await axios.get(scan[0], { responseType: "arraybuffer" });
+    const fileBuffer: Buffer = Buffer.from(fileResponse.data);
+    console.log("receive file")
+
+    // Create form-data
+    const formData = new FormData();
+    formData.append("file", fileBuffer, {
+        filename: "scan.jpg",
+        contentType: "image/jpeg"
+    });
+
+    const url = new URL(config.scanning_url);
+
+
+    console.log("🚀 Sending file to scanning service...");
+
+    const response = await axios.post(
+        url.toString(),
+        formData,
+        {
+            headers: formData.getHeaders()
+        }
+    );
+    console.log("file sent")
+
+    if (response.status !== 200) {
+        throw new AppError(httpStatus.NOT_ACCEPTABLE, "Scanning server not responed");
+    }
+
+    console.log("scan:", response.data)
+    console.log("scan:", response.data.results)
+
+    return response
+}
 const embeddingServices = async (payload: IEmbeddings) => {
     const fileResponse = await axios.get(payload.file[0], { responseType: "arraybuffer" });
     const fileBuffer: Buffer = Buffer.from(fileResponse.data);
@@ -115,7 +150,7 @@ const embeddingServices = async (payload: IEmbeddings) => {
             headers: formData.getHeaders()
         }
     );
-    console.log("sending file")
+    console.log("file sent")
 
     if (response.status !== 200) {
         throw new AppError(httpStatus.NOT_ACCEPTABLE, "Scanning server not responed");
@@ -127,10 +162,12 @@ const embeddingServices = async (payload: IEmbeddings) => {
     return response
 }
 
+
 const StatsServices = {
     fetchAggregation,
     fetchAggregationTwo,
-    embeddingServices
+    embeddingServices,
+    scanningServices
 };
 
 export default StatsServices;

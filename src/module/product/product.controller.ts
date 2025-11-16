@@ -9,6 +9,7 @@ import NotificationServices from "../notification/notification.service";
 import StripeServices from "../stripe/stripe.service";
 import { IProduct } from "./product.interface";
 import Product from "./product.model";
+import StatsServices from "../stats/stats.services";
 
 const createProduct: RequestHandler = catchAsync(async (req, res) => {
   if (req.user?.role !== "Brand") {
@@ -45,10 +46,23 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
   console.log("measurement:", req.body.data.measurement!);
 
 
+
   const result = await GenericService.insertResources<IProduct>(
     Product,
     req.body?.data
   );
+
+
+  const storeEmbedd = await StatsServices.embeddingServices({ file: req.body.data.productImages, product_id: result.data._id.toString(), category: result.data.category })
+  console.log("storeEmbedd:", storeEmbedd)
+
+  if (!storeEmbedd) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "There is problem in storing embedding",
+      ""
+    );
+  }
 
   // await NotificationServices.sendNoification({
   //   ownerId: req.user?._id,
