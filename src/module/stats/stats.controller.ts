@@ -426,6 +426,17 @@ const getBrandStats: RequestHandler = catchAsync(async (req, res) => {
     });
 });
 
+const getCategoryList: RequestHandler = catchAsync(async (req, res) => {
+    const result = await Product.distinct("category", { isDeleted: false })
+    console.log("Category:", result)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Category list retrieved successfully",
+        data: result,
+    });
+})
+
 
 const StatsController = {
     scanning,
@@ -433,6 +444,7 @@ const StatsController = {
     appFirstStatsTwo,
     getRelatedBrands,
     getMonthlyProductOrders,
-    getBrandStats
+    getBrandStats,
+    getCategoryList
 }
 export default StatsController

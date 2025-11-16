@@ -10,7 +10,7 @@ const getCartService = async (req: Request) => {
   console.log("_id:", _id)
 
   const result = await Cart.aggregate([
-    { $match: { userId: _id!, isDeleted: false } },
+    { $match: { userId: await idConverter(_id)!, isDeleted: false } },
     { $unwind: "$products" },
     {
       $lookup: {

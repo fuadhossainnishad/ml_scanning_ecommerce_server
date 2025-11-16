@@ -32,6 +32,9 @@ router
     .get('/earnings',
         auth('Brand'),
         EarningsController.getEarningsSummary
+    )
+    .get('/categorylist',
+        StatsController.getCategoryList
     );
 
 

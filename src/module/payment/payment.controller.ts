@@ -91,6 +91,7 @@ const paymentIntent: RequestHandler = catchAsync(async (req, res) => {
     }
     const existCart = await Cart.find({ userId: req.user._id, isDeleted: false })
     console.log("existCart details:", existCart);
+    console.log("userId:", req.user._id)
 
     const findCart = await CartServices.getCartService(req);
     console.log("cart details:", findCart);
