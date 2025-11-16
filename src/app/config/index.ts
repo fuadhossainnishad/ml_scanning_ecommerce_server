@@ -34,5 +34,7 @@ export default {
     webHookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
     publishKey: process.env.STRIPE_PUBLISH_KEY!
   },
-  scanning_url: process.env.SCANNING_URL!
+  scanning_url: process.env.SCANNING_URL!,
+  embedding_url: process.env.EMBEDDING_URL!,
+  local: process.env.LOCAL!,
 };

@@ -124,43 +124,55 @@ const scanningServices = async (scan: string[]) => {
 
     return response
 }
+
+
+
 const embeddingServices = async (payload: IEmbeddings) => {
-    const fileResponse = await axios.get(payload.file[0], { responseType: "arraybuffer" });
-    const fileBuffer: Buffer = Buffer.from(fileResponse.data);
-    console.log("receive file")
-
-    // Create form-data
-    const formData = new FormData();
-    formData.append("file", fileBuffer, {
-        filename: "scan.jpg",
-        contentType: "image/jpeg"
-    });
-
-    const url = new URL(config.scanning_url);
-    if (payload.product_id) url.searchParams.append("product_id", payload.product_id);
-    if (payload.category) url.searchParams.append("category", payload.category);
-    if (payload.top_k) url.searchParams.append("top_k", payload.top_k.toString());
-
-    console.log("🚀 Sending file to scanning service...");
-
-    const response = await axios.post(
-        url.toString(),
-        formData,
-        {
-            headers: formData.getHeaders()
-        }
-    );
-    console.log("file sent")
-
-    if (response.status !== 200) {
-        throw new AppError(httpStatus.NOT_ACCEPTABLE, "Scanning server not responed");
+    if (!payload.file || payload.file.length === 0) {
+        throw new AppError(httpStatus.BAD_REQUEST, "No files provided for embedding");
     }
 
-    console.log("scan:", response.data)
-    console.log("scan:", response.data.results)
+    const results = [];
 
-    return response
-}
+    for (let i = 0; i < payload.file.length; i++) {
+        const fileUrl = payload.file[i];
+
+        const fileResponse = await axios.get(fileUrl, { responseType: "arraybuffer" });
+        const fileBuffer: Buffer = Buffer.from(fileResponse.data);
+        console.log(`Received file ${i + 1}/${payload.file.length}`);
+
+        const formData = new FormData();
+        formData.append("file", fileBuffer, {
+            filename: `scan_${i + 1}.jpg`,
+            contentType: "image/jpeg"
+        });
+
+        const url = new URL(config.embedding_url);
+        if (payload.product_id) url.searchParams.append("product_id", payload.product_id);
+        if (payload.category) url.searchParams.append("category", payload.category);
+        // if (payload.top_k) url.searchParams.append("top_k", payload.top_k.toString());
+
+        console.log(`🚀 Sending file ${i + 1} to scanning service...`);
+
+        const response = await axios.post(url.toString(), formData, {
+            headers: formData.getHeaders()
+        });
+
+        if (response.status !== 200) {
+            throw new AppError(httpStatus.NOT_ACCEPTABLE, `Scanning server did not respond for file ${i + 1}`);
+        }
+
+        console.log(`File ${i + 1} uploaded. Response:`, response.data);
+
+        results.push(response.data);
+    }
+
+    return {
+        status: "success",
+        product_id: payload.product_id,
+        embeddings: results
+    };
+};
 
 
 const StatsServices = {
