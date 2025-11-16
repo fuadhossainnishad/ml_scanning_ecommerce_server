@@ -67,6 +67,7 @@ const insertEarning: RequestHandler = catchAsync(async (req, res, next: NextFunc
 
     console.log(`Added $${deliveredAmount} to brand ${brandId} earnings. New total: $${updatedEarnings.totalEarnings}`);
     console.log("updatedEarnings", updatedEarnings);
+    next()
 });
 
 const getMonthlyEarnings: RequestHandler = catchAsync(async (req, res) => {

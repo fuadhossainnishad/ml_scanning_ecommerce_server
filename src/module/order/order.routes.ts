@@ -2,6 +2,7 @@ import { Router } from "express";
 import auth from "../../middleware/auth";
 import OrderController from "./order.controller";
 import EarningsController from "../earnings/earnings.controller";
+import RewardController from "../reward/reward.controller";
 
 const router = Router()
 
@@ -21,7 +22,8 @@ router
     .post(
         auth('Brand'),
         OrderController.updateStatus,
-        EarningsController.insertEarning
+        EarningsController.insertEarning,
+        RewardController.insertReward
     )
 
 router
