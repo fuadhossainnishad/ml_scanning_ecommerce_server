@@ -160,7 +160,62 @@ const getOrderService = async (req: Request) => {
         }
       },
       { $unset: ["productsData"] },
-      { $unset: ["cartData"] }
+      { $unset: ["cartData"] },
+      {
+        $lookup: {
+          from: "payments",
+          localField: "_id",
+          foreignField: "orderId",
+          as: "payment"
+        }
+      },
+      { $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
+
+      {
+        $addFields: {
+          paymentMethod: { $ifNull: ["$payment.paymentMethod", "card"] },
+          paymentStatus: { $ifNull: ["$payment.paymentStatus", "pending"] },
+          totalAmount: {
+            $sum: {
+              $map: {
+                input: "$items",
+                as: "item",
+                in: {
+                  $multiply: [
+                    { $ifNull: ["$$item.discountPrice", "$$item.price"] },
+                    { $ifNull: ["$$item.quantity", 0] }
+                  ]
+                }
+              }
+            }
+          },
+          subTotal: {
+            $sum: {
+              $map: {
+                input: "$items",
+                as: "item",
+                in: {
+                  $multiply: [
+                    { $ifNull: ["$$item.price", 0] },
+                    { $ifNull: ["$$item.quantity", 0] }
+                  ]
+                }
+              }
+            }
+          },
+          // discount: {
+          //   $subtract: ["$subTotal", "$totalAmount"]
+          // }
+        }
+      },
+      {
+        $addFields: {
+          discount: {
+            $subtract: ["$subTotal", "$totalAmount"]
+          }
+        }
+      },
+      { $unset: "payment" }
     ]
 
     builder.addStages(addStages)
@@ -175,13 +230,10 @@ const getOrderService = async (req: Request) => {
     }
   }
 
-  // For brands: Optimized pipeline starting from Products (filter by brandId) → Carts → Orders
-  // This avoids scanning all orders; only processes brand's products and linked orders
   if (role === 'Brand') {
     const brandObjectId = await idConverter(_id)
     console.log("Brand pipeline for _id:", _id, "as ObjectId:", brandObjectId);
 
-    // Base match for products belonging to the brand
     const productMatch: PipelineStage.Match = {
       $match: {
         brandId: brandObjectId,
@@ -189,7 +241,6 @@ const getOrderService = async (req: Request) => {
       }
     }
 
-    // Project only necessary product fields early
     const productProject: PipelineStage.Project = {
       $project: {
         _id: 1,
@@ -201,7 +252,6 @@ const getOrderService = async (req: Request) => {
       }
     }
 
-    // Build order match with query params
     const orderMatch = {
       paymentStatus: PaymentStatus.PAID,
       isDeleted: { $ne: true },
@@ -212,7 +262,6 @@ const getOrderService = async (req: Request) => {
     }
 
     const brandStages: PipelineStage[] = [
-      // Lookup to carts that contain these products (reverse lookup)
       {
         $lookup: {
           from: "carts",
@@ -258,7 +307,6 @@ const getOrderService = async (req: Request) => {
       },
       { $unwind: { path: "$cartData", preserveNullAndEmptyArrays: true } },  // Allow empty if no cart
 
-      // Lookup to orders from cart
       {
         $lookup: {
           from: "orders",
@@ -291,7 +339,6 @@ const getOrderService = async (req: Request) => {
       },
       { $unwind: { path: "$orderData", preserveNullAndEmptyArrays: true } },
 
-      // Filter out null orders
       { $match: { orderData: { $ne: null } } },
 
       {
@@ -304,7 +351,6 @@ const getOrderService = async (req: Request) => {
       },
       { $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
 
-      // Group by order to handle multiple products per order
       {
         $group: {
           _id: "$orderData._id",
@@ -318,12 +364,11 @@ const getOrderService = async (req: Request) => {
               price: "$price",
               discountPrice: "$discountPrice"
             }
-          },  // Collect only product info
+          },
           cartData: { $first: "$cartData" }
         }
       },
 
-      // Add fields for merged items (flattened product lookup to avoid scope issues)
       {
         $addFields: {
           "order.items": {
@@ -375,13 +420,10 @@ const getOrderService = async (req: Request) => {
         }
       },
 
-      // Unwind items for flattening
       { $unwind: { path: "$order.items", preserveNullAndEmptyArrays: true } },
 
-      // Filter to only brand's items
       { $match: { "order.items.brandId": brandObjectId } },
 
-      // Replace root with merged item + order details
       {
         $replaceRoot: {
           newRoot: {
@@ -428,13 +470,11 @@ const getOrderService = async (req: Request) => {
         }
       },
 
-      // Sort by item createdAt desc
       { $sort: { createdAt: -1 } }
     ]
 
     const fullPipeline = [productMatch, productProject, ...brandStages]
 
-    // Count total unique items
     const countPipeline = [...fullPipeline, { $count: "total" }]
     const countResult = await Product.aggregate(countPipeline)
     const total = countResult[0]?.total || 0
@@ -443,7 +483,6 @@ const getOrderService = async (req: Request) => {
     const limit = Number(req.query.limit) || 10
     const skip = (page - 1) * limit
 
-    // Data pipeline with pagination
     const dataPipeline = [...fullPipeline, { $skip: skip }, { $limit: limit }]
     const data = await Product.aggregate(dataPipeline)
 
@@ -454,7 +493,6 @@ const getOrderService = async (req: Request) => {
       totalPage: Math.ceil(total / limit)
     }
 
-    // Debug
     if (data.length > 0) {
       console.log("Sample merged item brandId:", data[0].brandId);
     }
@@ -635,7 +673,6 @@ const getTransactionService = async (req: Request) => {
     const brandObjectId = await idConverter(_id)
     console.log("Brand pipeline for _id:", _id, "as ObjectId:", brandObjectId);
 
-    // Base match for products belonging to the brand
     const productMatch: PipelineStage.Match = {
       $match: {
         brandId: brandObjectId,
@@ -643,7 +680,6 @@ const getTransactionService = async (req: Request) => {
       }
     }
 
-    // Project only necessary product fields early
     const productProject: PipelineStage.Project = {
       $project: {
         _id: 1,
@@ -655,7 +691,6 @@ const getTransactionService = async (req: Request) => {
       }
     }
 
-    // Build order match with query params
     const orderMatch = {
       paymentStatus: PaymentStatus.PAID,
       isDeleted: { $ne: true },
@@ -666,7 +701,6 @@ const getTransactionService = async (req: Request) => {
     }
 
     const brandStages: PipelineStage[] = [
-      // Lookup to carts that contain these products (reverse lookup)
       {
         $lookup: {
           from: "carts",
@@ -710,9 +744,8 @@ const getTransactionService = async (req: Request) => {
           as: "cartData"
         }
       },
-      { $unwind: { path: "$cartData", preserveNullAndEmptyArrays: true } },  // Allow empty if no cart
+      { $unwind: { path: "$cartData", preserveNullAndEmptyArrays: true } },
 
-      // Lookup to orders from cart
       {
         $lookup: {
           from: "orders",
@@ -745,10 +778,8 @@ const getTransactionService = async (req: Request) => {
       },
       { $unwind: { path: "$orderData", preserveNullAndEmptyArrays: true } },
 
-      // Filter out null orders
       { $match: { orderData: { $ne: null } } },
 
-      // Group by order to handle multiple products per order
       {
         $group: {
           _id: "$orderData._id",
@@ -762,12 +793,11 @@ const getTransactionService = async (req: Request) => {
               price: "$price",
               discountPrice: "$discountPrice"
             }
-          },  // Collect only product info
+          },
           cartData: { $first: "$cartData" }
         }
       },
 
-      // Add fields for merged items (flattened product lookup to avoid scope issues)
       {
         $addFields: {
           "order.items": {
@@ -819,13 +849,10 @@ const getTransactionService = async (req: Request) => {
         }
       },
 
-      // Unwind items for flattening
       { $unwind: { path: "$order.items", preserveNullAndEmptyArrays: true } },
 
-      // Filter to only brand's items
       { $match: { "order.items.brandId": brandObjectId } },
 
-      // Replace root with merged item + order details
       {
         $replaceRoot: {
           newRoot: {
@@ -838,18 +865,24 @@ const getTransactionService = async (req: Request) => {
                 // address: "$order.address",
                 // paymentMethod: { $ifNull: ["$payment.paymentStatus", "card"] },
                 // paymentStatus: { $ifNull: ["$payment.paymentStatus", "pending"] },
-                // subTotal: {
-                //   $multiply: [
-                //     { $ifNull: ["$order.items.price", 0] },
-                //     { $ifNull: ["$order.items.quantity", 0] }
-                //   ]
-                // },
-                earning: {
+                subTotal: {
+                  $multiply: [
+                    { $ifNull: ["$order.items.price", 0] },
+                    { $ifNull: ["$order.items.quantity", 0] }
+                  ]
+                },
+                total: {
                   $multiply: [
                     { $ifNull: ["$order.items.discountPrice", "$order.items.price"] },
                     { $ifNull: ["$order.items.quantity", 0] }
                   ]
                 },
+                // earning: {
+                //   $multiply: [
+                //     { $ifNull: ["$order.items.discountPrice", "$order.items.price"] },
+                //     { $ifNull: ["$order.items.quantity", 0] }
+                //   ]
+                // },
                 earningStatus: {
                   $cond: {
                     if: { $eq: ["$order.items.sellerStatus", "delivered"] },
@@ -880,14 +913,19 @@ const getTransactionService = async (req: Request) => {
           }
         }
       },
+      {
+        $addFields: {
+          earning: {
+            $multiply: ["$total", 0.9]
+          }
+        }
+      },
 
-      // Sort by item createdAt desc
       { $sort: { createdAt: -1 } }
     ]
 
     const fullPipeline = [productMatch, productProject, ...brandStages]
 
-    // Count total unique items
     const countPipeline = [...fullPipeline, { $count: "total" }]
     const countResult = await Product.aggregate(countPipeline)
     const total = countResult[0]?.total || 0
@@ -896,7 +934,6 @@ const getTransactionService = async (req: Request) => {
     const limit = Number(req.query.limit) || 10
     const skip = (page - 1) * limit
 
-    // Data pipeline with pagination
     const dataPipeline = [...fullPipeline, { $skip: skip }, { $limit: limit }]
     const data = await Product.aggregate(dataPipeline)
 
@@ -907,7 +944,6 @@ const getTransactionService = async (req: Request) => {
       totalPage: Math.ceil(total / limit)
     }
 
-    // Debug
     if (data.length > 0) {
       console.log("Sample merged item brandId:", data[0].brandId);
     }
