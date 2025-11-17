@@ -37,9 +37,15 @@ const uploadCart: RequestHandler = catchAsync(async (req, res) => {
     );
   }
 
+  // await Product.updateMany(
+  //   { isDeleted: { $exists: false } },
+  //   { $set: { isDeleted: false } }
+  // )
+
   const convertedProductId = await idConverter(productId);
   console.log("convertedProductId:", convertedProductId)
-
+  const real = await Product.findOne({ _id: convertedProductId }, null, { lean: true }).sort({ createdAt: -1 });
+  console.log("REAL PRODUCT FROM DB:", real);
   const isExistProduct = await Product.findOne({
     _id: convertedProductId,
     isDeleted: false,
