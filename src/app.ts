@@ -72,7 +72,7 @@ app.get("/", (req: Request, res: Response) => {
 
 
 app.use("/api/v1", router);
-app.post("/api/v1/payment-sheet", auth('User'), PaymentController.paymentIntent);
+app.post("/api/v1/payment-sheet", auth('User'), PaymentController.test);
 
 
 app.use(notFound);
