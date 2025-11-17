@@ -45,4 +45,3 @@ pids/
 *.pid
 *.seed
 
-/src/app/config/firebase-service-account.json
