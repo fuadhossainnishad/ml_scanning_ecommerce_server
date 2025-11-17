@@ -7,21 +7,27 @@ import { fileHandle } from "../../middleware/fileHandle";
 const router = express.Router();
 
 router
-  .route("/:id")
-  .post(
-    auth('User'),
-    upload.fields([{name:"attachment",maxCount:10}]),
-    fileHandle("attachment"),
-    ReviewController.createReview
-  )
-
-router
   .route("/")
   .get(
     auth('User', 'Brand'),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     ReviewController.getReview
   );
+router
+  .route("/all")
+  .get(
+    ReviewController.getAllReviews
+  )
+router
+  .route("/:id")
+  .post(
+    auth('User'),
+    upload.fields([{ name: "attachment", maxCount: 10 }]),
+    fileHandle("attachment"),
+    ReviewController.createReview
+  )
+
+
 
 // router.patch(
 //   "/update_admin",

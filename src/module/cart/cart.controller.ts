@@ -21,6 +21,8 @@ const uploadCart: RequestHandler = catchAsync(async (req, res) => {
   }
 
   const { productId, color, size, quantity } = req.body.data;
+  console.log("Received cart data:", req.body.data);
+
   if (
     !productId ||
     !color ||
@@ -38,7 +40,13 @@ const uploadCart: RequestHandler = catchAsync(async (req, res) => {
   const convertedProductId = await idConverter(productId);
   console.log("convertedProductId:", convertedProductId)
 
-  const isExistProduct = await Product.findById(convertedProductId)
+  const isExistProduct = await Product.findOne({
+    _id: convertedProductId,
+    isDeleted: false,
+    inStock: true,
+    totalQuantity: { $gte: quantity }
+  })
+
   console.log("isExistProduct:", isExistProduct)
   if (!isExistProduct) {
     throw new AppError(

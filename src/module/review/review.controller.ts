@@ -80,9 +80,21 @@ const getReview: RequestHandler = catchAsync(async (req, res) => {
 //   });
 // });
 
+const getAllReviews: RequestHandler = catchAsync(async (req, res) => {
+  const result = await GenericService.findAllResources<IReview>(Review, req.query, [])
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: "successfully updated Review profile",
+    data: result,
+  });
+})
+
 const ReviewController = {
   createReview,
   getReview,
+  getAllReviews
   // updateReview,
 };
 

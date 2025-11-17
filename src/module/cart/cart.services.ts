@@ -22,7 +22,7 @@ const getCartService = async (req: Request) => {
         as: "productDetails"
       }
     },
-  { $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true } },
     {
       $addFields: {
         "products.productInfo": "$productDetails.productName",
