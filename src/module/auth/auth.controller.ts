@@ -198,6 +198,27 @@ const updatePassword: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const updateFcm: RequestHandler = catchAsync(async (req, res) => {
+  if (!req.user) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated", "");
+  }
+  const { _id } = req.user
+  const { fcm } = req.body.data
+
+  if (!fcm) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Fcm token needed for push notification", "");
+  }
+
+  const result = await GenericService.updateResources<IUser>(User, _id!, { fcm });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Fcm updated successfully",
+    data: result,
+  });
+})
+
 const AuthController = {
   signUp,
   login,
@@ -205,6 +226,7 @@ const AuthController = {
   verifyOtp,
   resetPassword,
   updatePassword,
+  updateFcm
 };
 
 export default AuthController;

@@ -29,6 +29,7 @@ export interface ISignup extends ISignIn {
   last_login?: Date
   failed_attempts?: number
   stripe_customer_id: string;
+  fcm: string
   // agreeTcp: boolean;
 }
 

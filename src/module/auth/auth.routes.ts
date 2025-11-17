@@ -50,6 +50,13 @@ router.patch(
   AuthController.updatePassword
 );
 
+router.patch(
+  "/fcm",
+  auth("User", "Brand", "Admin"),
+  // validationRequest(AuthValidationSchema.updatePasswordValidation),
+  AuthController.updateFcm
+);
+
 const AuthRouter = router;
 
 export default AuthRouter;

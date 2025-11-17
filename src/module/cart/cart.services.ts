@@ -5,12 +5,14 @@ import Cart from "./cart.model";
 import { Request } from "express";
 
 const getCartService = async (req: Request) => {
-  const { _id } = req.user
+  const _id = await idConverter(req.user._id)
 
   console.log("_id:", _id)
 
   const result = await Cart.aggregate([
-    { $match: { userId: await idConverter(_id)!, isDeleted: false } },
+    { $match: { userId: await idConverter(_id), isDeleted: false } },
+    { $unwind: { path: "$products", preserveNullAndEmptyArrays: true } },
+
     { $unwind: "$products" },
     {
       $lookup: {
@@ -20,7 +22,7 @@ const getCartService = async (req: Request) => {
         as: "productDetails"
       }
     },
-    { $unwind: "$productDetails" },
+  { $unwind: { path: "$productDetails", preserveNullAndEmptyArrays: true } },
     {
       $addFields: {
         "products.productInfo": "$productDetails.productName",

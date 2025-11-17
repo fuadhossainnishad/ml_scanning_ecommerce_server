@@ -33,6 +33,7 @@ export const SignupSchema: Schema = new Schema<IUser>({
   },
   last_login: { type: Date, default: Date.now },
   failed_attempts: { type: Number, default: 0 },
+  fcm: { type: String, default: "" },
 });
 
 const OtpSchema = new Schema<IOtp>(

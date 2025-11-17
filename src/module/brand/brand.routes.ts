@@ -16,10 +16,10 @@ router
   .patch(
     auth('Brand'),
     upload.fields([
-      { name: "profile", maxCount: 1 },
+      { name: "brandLogo", maxCount: 1 },
       { name: "coverPhoto", maxCount: 1 }
     ]),
-    fileHandle("profile"),
+    fileHandle("brandLogo"),
     fileHandle("coverPhoto"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     BrandController.updateBrand
