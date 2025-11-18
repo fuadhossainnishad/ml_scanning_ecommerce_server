@@ -12,6 +12,7 @@ import { PipelineStage, Types } from "mongoose";
 import Earning from "../earnings/earnings.model";
 import Cart from "../cart/cart.model";
 import { idConverter } from "../../utility/idConverter";
+import Post from "../post/post.model";
 
 interface MonthlyOrders {
     month: string; // e.g., "Jan"
@@ -427,13 +428,31 @@ const getBrandStats: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const getCategoryList: RequestHandler = catchAsync(async (req, res) => {
-    const result = await Product.distinct("category", { isDeleted: false })
+    const { id } = req.params
+    const result = await Product.distinct("category", { brandId: await idConverter(id), isDeleted: false })
     console.log("Category:", result)
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.OK,
         message: "Category list retrieved successfully",
         data: result,
+    });
+})
+
+const postFilterList: RequestHandler = catchAsync(async (req, res) => {
+    const result = await Post.distinct("tags", { isDeleted: false })
+    console.log("Tags:", result)
+
+    const hardList = ['User', 'Brand', 'New']
+
+    const list = Array.from(new Set([...hardList, ...result]))
+    console.log("all tags:", list)
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "Post Filter list retrieved successfully",
+        data: list,
     });
 })
 
@@ -445,6 +464,7 @@ const StatsController = {
     getRelatedBrands,
     getMonthlyProductOrders,
     getBrandStats,
-    getCategoryList
+    getCategoryList,
+    postFilterList
 }
 export default StatsController

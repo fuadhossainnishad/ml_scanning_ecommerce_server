@@ -24,6 +24,7 @@ import EarningsRouter from "../module/earnings/earnings.routes";
 import GraphsRouter from "../module/stats/graph.routes";
 import CardRouter from "../module/card/card.routes";
 import WithdrawRouter from "../module/withdraw/withdraw.routes";
+import RewardRouter from "../module/reward/reward.routes";
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ const moduleRoutes = [
   { path: "/savepost", route: SavePostRouter },
   { path: "/settings", route: SettingsRouter },
   { path: "/stats", route: StatsRouter },
-  // { path: "/subscription", route: SubscriptionRouter },
+  { path: "/reward", route: RewardRouter },
   { path: "/withdraw", route: WithdrawRouter },
   { path: "/notification", route: NotificationRouter },
 ];

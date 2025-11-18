@@ -33,7 +33,10 @@ router
         auth('Brand'),
         EarningsController.getEarningsSummary
     )
-    .get('/categorylist',
+    .get('/feedFilterlist',
+        StatsController.postFilterList
+    )
+    .get('/categorylist/:id',
         StatsController.getCategoryList
     );
 

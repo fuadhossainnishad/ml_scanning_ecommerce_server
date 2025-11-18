@@ -1,7 +1,7 @@
 // import { Request } from "express";
 // import Post from "./post.model";
 // import { buildMeta, calculatePagination } from "../stats/stats.services";
-// import { FilterQuery } from "mongoose";
+// import { FilterQuery, Query } from 'mongoose';
 
 // export const parseSortQuery = (sort: unknown): Record<string, 1 | -1> => {
 //     if (typeof sort !== "string") return { createdAt: -1 };
@@ -246,7 +246,27 @@ const getPostService = async (req: Request) => {
 
     console.log("Get post id:", userIdStr)
 
-    const builder = new AggregationQueryBuilder(Post, req.query);
+    const query: Record<string, unknown> = {};
+
+    Object.entries(req.query).forEach(([key, value]) => {
+        if (key !== "tags") query[key] = value;
+    });
+
+    if (req.query.tags === "User" || req.query.tags === "Brand") {
+        query.uploaderType = req.query.tags;
+    }
+    else if (req.query.tags === "New") {
+        query.sort = "{createdAt:-1}";
+    }
+    else if (req.query.tags) {
+        query.tags = req.query.tags;
+    }
+
+    console.log("Final Post Query:", query);
+
+
+
+    const builder = new AggregationQueryBuilder(Post, query);
 
     builder.filter();
     builder.search(["caption", "tags"]);

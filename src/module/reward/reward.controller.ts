@@ -1,6 +1,11 @@
 import { RequestHandler } from "express";
 import catchAsync from "../../utility/catchAsync";
 import Reward from "./reward.model";
+import AppError from "../../app/error/AppError";
+import httpStatus from 'http-status';
+import GenericService from "../../utility/genericService.helpers";
+import { IReward } from "./reward.interface";
+import sendResponse from "../../utility/sendResponse";
 
 const insertReward: RequestHandler = catchAsync(async (req, res, next) => {
     const orderUpdateData = req.body.data?.orderUpdateData;
@@ -14,7 +19,7 @@ const insertReward: RequestHandler = catchAsync(async (req, res, next) => {
         totalAmount += (item.discountPrice || 0) * (item.quantity || 0);
     }
 
-    const reward = await Reward.findOneAndUpdate(
+     await Reward.findOneAndUpdate(
         { userId: brandId },
         {
             $inc: { totalSpent: totalAmount },
@@ -23,13 +28,36 @@ const insertReward: RequestHandler = catchAsync(async (req, res, next) => {
         { upsert: true, new: true, runValidators: true }
     );
 
-    reward.reward = reward.totalSpent / 10;
-    reward.remainReward = reward.reward - reward.spentReward;
-    await reward.save();
 
     console.log(`Inserted/Updated reward for user ${brandId}: $${totalAmount}`);
     next();
 });
 
-const RewardController = { insertReward };
+const getReward: RequestHandler = catchAsync(async (req, res) => {
+
+    if (!req.user) {
+        throw new AppError(
+            httpStatus.BAD_REQUEST,
+            "Authenticated user is required",
+            ""
+        );
+    }
+    const query = {
+        userId: req.user._id,
+        ...req.query
+    }
+    const result = await GenericService.findAllResources<IReward>(Reward, query, [])
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.CREATED,
+        message: "successfully retrieve reward data",
+        data: result,
+    });
+});
+
+const RewardController = {
+    insertReward,
+    getReward
+};
 export default RewardController;

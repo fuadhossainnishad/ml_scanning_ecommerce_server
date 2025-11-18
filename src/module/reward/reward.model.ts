@@ -8,27 +8,13 @@ const RewardSchema = new Schema<IReward>({
         ref: 'User',
         required: true
     },
-    totalSpent: {
-        type: Number,
-        default: 0
-    },
     reward: {
         type: Number,
-        default: function (this: IReward) {
-            return this.totalSpent / 10
-        }
+        required: true,
     },
-
-    spentReward: {
-        type: Number,
-        default: 0
-    },
-
-    remainReward: {
-        type: Number,
-        default: function (this: IReward) {
-            return this.reward - this.spentReward
-        }
+    rewardPending: {
+        type: Boolean,
+        required: true,
     },
     isDeleted: {
         type: Boolean,
