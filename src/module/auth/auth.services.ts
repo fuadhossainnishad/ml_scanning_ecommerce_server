@@ -13,7 +13,7 @@ import Admin from "../admin/admin.model";
 const loginService = async (payload: ISignIn) => {
 
   if (!payload.email || !payload.password) {
-    throw new AppError(httpStatus.NOT_FOUND, "Mail/password not found", "");
+    throw new AppError(httpStatus.NOT_FOUND, "Email already exist", "");
   }
 
   console.log(payload);
