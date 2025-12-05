@@ -259,7 +259,7 @@ const brandOfTheWeekService = async () => {
     ]);
 
     if (!result || result.length === 0) {
-        return { message: "No brand found as brand of the week" };
+        return []
     }
 
     return result[0];

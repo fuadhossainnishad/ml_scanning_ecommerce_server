@@ -463,7 +463,7 @@ const brandOfTheWeek: RequestHandler = catchAsync(async (req, res) => {
 
     let result = await StatsServices.brandOfTheWeekService();
 
-    if (!result || !result.brandId) {
+    if (!result || !result.brandId || result.length === 0) {
         const fallbackBrand = await Brand.findOne().select(
             "brandName theme brandLogo"
         );
