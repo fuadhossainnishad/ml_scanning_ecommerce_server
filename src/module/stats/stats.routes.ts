@@ -36,6 +36,10 @@ router
     .get('/feedFilterlist',
         StatsController.postFilterList
     )
+    .get('/brand_of_the_week',
+        auth('User'),
+        StatsController.brandOfTheWeek
+    )
     .get('/categorylist/:id',
         StatsController.getCategoryList
     );

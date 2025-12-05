@@ -7,6 +7,7 @@ import FormData from 'form-data';
 import AppError from '../../app/error/AppError';
 import httpStatus from 'http-status';
 import config from '../../app/config';
+import Order from '../order/order.model';
 
 export interface IPaginationMeta {
     page: number;
@@ -175,11 +176,103 @@ const embeddingServices = async (payload: IEmbeddings) => {
 };
 
 
+const brandOfTheWeekService = async () => {
+    // Get start and end of this week (Monday → Sunday)
+    const today = new Date();
+
+    const firstDay = new Date(today);
+    firstDay.setDate(today.getDate() - today.getDay() + 1);
+    firstDay.setHours(0, 0, 0, 0);
+
+    const lastDay = new Date(firstDay);
+    lastDay.setDate(firstDay.getDate() + 6);
+    lastDay.setHours(23, 59, 59, 999);
+
+    const result = await Order.aggregate([
+        {
+            $match: {
+                orderStatus: "delivered",
+                paymentStatus: "succeded",
+                createdAt: {
+                    $gte: firstDay,
+                    $lte: lastDay,
+                },
+            },
+        },
+
+        // Join cart
+        {
+            $lookup: {
+                from: "carts",
+                localField: "cartId",
+                foreignField: "_id",
+                as: "cart",
+            },
+        },
+        { $unwind: "$cart" },
+
+        // Each product in the cart
+        { $unwind: "$cart.products" },
+
+        // Join product
+        {
+            $lookup: {
+                from: "products",
+                localField: "cart.products.productId",
+                foreignField: "_id",
+                as: "product",
+            },
+        },
+        { $unwind: "$product" },
+
+        // Group by brand
+        {
+            $group: {
+                _id: "$product.brandId",
+                totalSold: { $sum: "$cart.products.quantity" },
+            },
+        },
+        { $sort: { totalSold: -1 } },
+        { $limit: 1 },
+
+        // Join brand
+        {
+            $lookup: {
+                from: "brands",
+                localField: "_id",
+                foreignField: "_id",
+                as: "brand",
+            },
+        },
+        { $unwind: "$brand" },
+
+        // Final output format
+        {
+            $project: {
+                _id: 0,
+                brandId: "$brand._id",
+                brandName: "$brand.brandName",
+                brandLogo: "$brand.brandLogo",
+                theme: "$brand.theme",
+            },
+        },
+    ]);
+
+    if (!result || result.length === 0) {
+        return { message: "No brand found as brand of the week" };
+    }
+
+    return result[0];
+};
+
+
+
 const StatsServices = {
     fetchAggregation,
     fetchAggregationTwo,
     embeddingServices,
-    scanningServices
+    scanningServices,
+    brandOfTheWeekService
 };
 
 export default StatsServices;

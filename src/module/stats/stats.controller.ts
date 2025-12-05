@@ -456,6 +456,33 @@ const postFilterList: RequestHandler = catchAsync(async (req, res) => {
     });
 })
 
+const brandOfTheWeek: RequestHandler = catchAsync(async (req, res) => {
+    if (!req.user) {
+        throw new AppError(httpStatus.NOT_ACCEPTABLE, "Authenticated user is required");
+    }
+
+    let result = await StatsServices.brandOfTheWeekService();
+
+    if (!result || !result.brandId) {
+        const fallbackBrand = await Brand.findOne().select(
+            "brandName theme brandLogo"
+        );
+
+        result = {
+            brandId: fallbackBrand?._id,
+            brandName: fallbackBrand?.brandName,
+            theme: fallbackBrand?.theme,
+            brandLogo: fallbackBrand?.brandLogo,
+        };
+    }
+    console.log("brandOfTheWeek:", result)
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "successfully retrieve brand of the week",
+        data: result,
+    });
+})
 
 const StatsController = {
     scanning,
@@ -465,6 +492,7 @@ const StatsController = {
     getMonthlyProductOrders,
     getBrandStats,
     getCategoryList,
-    postFilterList
+    postFilterList,
+    brandOfTheWeek
 }
 export default StatsController
