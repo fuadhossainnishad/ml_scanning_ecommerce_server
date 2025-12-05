@@ -259,7 +259,7 @@ const brandOfTheWeekService = async () => {
     ]);
 
     if (!result || result.length === 0) {
-        return []
+        return {}
     }
 
     return result[0];
