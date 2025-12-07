@@ -199,7 +199,7 @@ const updateCart: RequestHandler = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.CREATED,
     message: "successfully update cart data",
-    data: finalresult,
+    data: { cart: finalresult },
   });
 });
 
