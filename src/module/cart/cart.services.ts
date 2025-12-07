@@ -39,7 +39,7 @@ const getCartService = async (req: Request) => {
         createdAt: { $first: "$createdAt" },
         updatedAt: { $first: "$updatedAt" },
         products: { $push: "$products" },
-        shippingCharge: { $first: { $ifNull: ["$shippingCharge", 5] } },
+        // shippingCharge: { $first: { $ifNull: ["$shippingCharge", 5] } },
       }
     },
     {
@@ -51,20 +51,39 @@ const getCartService = async (req: Request) => {
               as: "p",
               in: {
                 $multiply: [
-                  { $ifNull: ["$$p.discountPrice", "$$p.price"] },
-                  "$$p.quantity",
-                ],
-              },
-            },
-          },
-        },
-      },
+                  { $ifNull: ["$$p.productPrice", "$$p.discountPrice"] },
+                  "$$p.quantity"
+                ]
+              }
+            }
+          }
+        }
+      }
     },
     {
       $addFields: {
-        total: { $add: ["$subtotal", "$shippingCharge"] },
-      },
+        total: {
+          $sum: {
+            $map: {
+              input: "$products",
+              as: "p",
+              in: {
+                $multiply: [
+                  { $ifNull: ["$$p.discountPrice", "$$p.productPrice"] },
+                  "$$p.quantity"
+                ]
+              }
+            }
+          }
+        }
+      }
     },
+    {
+      $addFields: {
+        discount: { $subtract: ["$subtotal", "$total"] }
+      }
+    }
+
   ])
 
   // if (!result.length) {
