@@ -18,7 +18,7 @@ import NotificationServices from "../notification/notification.service";
 import Reward from "../reward/reward.model";
 
 
-export const signUp: RequestHandler = catchAsync(async (req, res, next) => {
+export const signUp: RequestHandler = catchAsync(async (req, res) => {
   const { role, email } = req.body.data;
   const key = role.toLowerCase()
   console.log(email, role);
