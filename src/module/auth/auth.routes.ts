@@ -15,7 +15,8 @@ router.post(
   upload.fields([{ name: "brandLogo", maxCount: 1 }]),
   // fileHandle("profile"),
   fileHandle("brandLogo"),
-  AuthController.signUp
+  AuthController.signUp,
+  // RewardController.insertReward
 );
 
 router.post(

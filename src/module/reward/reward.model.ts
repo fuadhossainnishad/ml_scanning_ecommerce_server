@@ -8,21 +8,27 @@ const RewardSchema = new Schema<IReward>({
         ref: 'User',
         required: true
     },
+    totalSpent: {
+        type: Number,
+        default: 0
+    },
     reward: {
         type: Number,
-        required: true,
+        default: 0
+    },
+    rewardPrice: {
+        type: Number,
+        default: 0
     },
     rewardPending: {
         type: Boolean,
-        required: true,
+        default: false
     },
     isDeleted: {
         type: Boolean,
         default: false
     }
-},
-    { timestamps: true }
-)
+}, { timestamps: true });
 
 MongooseHelper.applyToJSONTransform(RewardSchema)
 MongooseHelper.findExistence(RewardSchema)

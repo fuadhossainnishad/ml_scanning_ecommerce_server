@@ -51,9 +51,9 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
     Product,
     req.body?.data
   );
+  console.log("input products:", result)
 
-
-  const storeEmbedd = await StatsServices.embeddingServices({ file: req.body.data.productImages, product_id: result.data._id.toString(), category: result.data.category })
+  const storeEmbedd = await StatsServices.embeddingServices({ file: req.body.data.productImages, product_id: result.product._id.toString(), category: result.product.category })
   console.log("storeEmbedd:", storeEmbedd)
 
   if (!storeEmbedd) {
@@ -64,15 +64,15 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
     );
   }
 
-  // await NotificationServices.sendNoification({
-  //   ownerId: req.user?._id,
-  //   key: "notification",
-  //   data: {
-  //     id: result.Subsciption?._id.toString(),
-  //     message: `New subsciption added`,
-  //   },
-  //   receiverId: [req.user?._id],
-  // });
+  await NotificationServices.sendNoification({
+    ownerId: req.user?._id,
+    key: "notification",
+    data: {
+      id: result.Subsciption?._id.toString(),
+      message: `New subsciption added`,
+    },
+    receiverId: [req.user?._id],
+  });
 
 
 

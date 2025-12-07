@@ -11,7 +11,7 @@ const insertReward: RequestHandler = catchAsync(async (req, res, next) => {
     const orderUpdateData = req.body.data?.orderUpdateData;
     if (!orderUpdateData) return next();
 
-    const { updatedOrders, brandId } = orderUpdateData;
+    const { updatedOrders, userId } = orderUpdateData;
     if (!updatedOrders?.data?.length) return next();
 
     let totalAmount = 0;
@@ -19,8 +19,8 @@ const insertReward: RequestHandler = catchAsync(async (req, res, next) => {
         totalAmount += (item.discountPrice || 0) * (item.quantity || 0);
     }
 
-     await Reward.findOneAndUpdate(
-        { userId: brandId },
+    await Reward.findOneAndUpdate(
+        { userId: userId },
         {
             $inc: { totalSpent: totalAmount },
             $set: { updatedAt: new Date() },
@@ -29,7 +29,7 @@ const insertReward: RequestHandler = catchAsync(async (req, res, next) => {
     );
 
 
-    console.log(`Inserted/Updated reward for user ${brandId}: $${totalAmount}`);
+    console.log(`Inserted/Updated reward for user ${userId}: $${totalAmount}`);
     next();
 });
 

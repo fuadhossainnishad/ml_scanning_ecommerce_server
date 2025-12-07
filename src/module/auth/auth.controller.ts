@@ -15,9 +15,10 @@ import Admin from '../admin/admin.model';
 import Brand from "../brand/brand.model";
 import StripeUtils from "../../utility/stripe.utils";
 import NotificationServices from "../notification/notification.service";
+import Reward from "../reward/reward.model";
 
 
-export const signUp: RequestHandler = catchAsync(async (req, res) => {
+export const signUp: RequestHandler = catchAsync(async (req, res, next) => {
   const { role, email } = req.body.data;
   const key = role.toLowerCase()
   console.log(email, role);
@@ -49,7 +50,21 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
   if (!result[key] || !result[key]._id) {
     throw new AppError(httpStatus.UNAUTHORIZED, "Signup failed");
   }
-
+  if (role === "User") {
+    await Reward.findOneAndUpdate(
+      { userId: result[key]._id },
+      {
+        $setOnInsert: {
+          totalSpent: 0,
+          reward: 0,
+          rewardPrice: 0,
+          rewardPending: false,
+          isDeleted: false,
+        },
+      },
+      { upsert: true }
+    );
+  }
 
   await NotificationServices.sendNoification({
     ownerId: result[key]._id,
@@ -62,6 +77,8 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
     notifyAdmin: true,
   });
 
+  // req.body.data.orderUpdateData.userId = result[key]._id!
+  // next()
   // const saveNotf = await NotificationServices()
 
   sendResponse(res, {

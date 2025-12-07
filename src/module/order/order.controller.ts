@@ -119,7 +119,7 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
         req.body.data.orderUpdateData = {
             updatedOrders: result,
             cartProductId: await idConverter(cartProductId),
-            brandId: req.user._id,
+            userId: req.user._id!,
         };
         next()
     }
