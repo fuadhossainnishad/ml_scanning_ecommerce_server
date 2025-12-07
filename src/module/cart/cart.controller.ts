@@ -189,11 +189,17 @@ const updateCart: RequestHandler = catchAsync(async (req, res) => {
     updatedCart
   );
 
+  console.log("update cart:", result)
+
+  const existCart = await Cart.find({ userId: req.user._id })
+  console.log("existCart details:", existCart);
+  const finalresult = await CartServices.getCartService(req);
+
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
     message: "successfully update cart data",
-    data: result,
+    data: finalresult,
   });
 });
 
