@@ -8,15 +8,16 @@ const handelDuplicateError = (err: any): TGenericResponse => {
   // Extracted value or null if not found
   const duplicateField = Object.keys(err.keyValue || {})[0];
   const duplicateValue = err.keyValue?.[duplicateField]
-
+  const formattedField =
+    duplicateField.charAt(0).toUpperCase() + duplicateField.slice(1).toLowerCase();
   errorSources.push({
     path: duplicateField,
-    message: `${duplicateField} '${duplicateValue}' is already taken`
+    message: `${formattedField} '${duplicateValue}' already exist`
   })
   const statusCode = 409;
   return {
     statusCode,
-    message: `${duplicateField} must be unique`,
+    message: `${formattedField} already exist`,
     errorSources,
   };
 };
