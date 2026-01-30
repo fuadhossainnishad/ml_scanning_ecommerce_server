@@ -30,7 +30,7 @@ const getProfileService = async (req: Request) => {
         }
         userRole = findExist.role;
     }
-    
+
     console.log("final profile id:", userId)
 
     const QueryModel = getRoleModels(userRole);

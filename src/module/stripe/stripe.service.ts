@@ -69,7 +69,7 @@ export const handleStripeWebhook = async (payload: IWebhooks) => {
     config.stripe.webHookSecret!
   );
   if (!event || event.type !== "payment_intent.succeeded") {
-    throw new AppError(httpStatus.NOT_FOUND, "not webhook event have found");
+    throw new AppError(httpStatus.NOT_FOUND, "No webhook event have found");
   }
   const paymentIntent = event.data.object as Stripe.PaymentIntent;
 

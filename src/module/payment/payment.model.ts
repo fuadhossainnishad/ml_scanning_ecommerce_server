@@ -12,7 +12,8 @@ const PaymentSchema: Schema<IPayment> = new Schema(
     orderId: {
       type: Schema.Types.ObjectId,
       ref: "Order",
-      required: true
+      required: true,
+      unique: true
     },
     stripeCustomerId: {
       type: String,
@@ -20,7 +21,8 @@ const PaymentSchema: Schema<IPayment> = new Schema(
     },
     paymentIntentId: {
       type: String,
-      required: true
+      required: true,
+      unique: true
     },
     amount: {
       type: Number,
@@ -32,7 +34,7 @@ const PaymentSchema: Schema<IPayment> = new Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ["pending", "succeded", "failed"],
+      enum: ["pending", "succeeded", "failed", "refunded"],
       required: true
     },
     paymentMethod: {
@@ -44,12 +46,21 @@ const PaymentSchema: Schema<IPayment> = new Schema(
       type: Object,
       default: {}
     },
-
+    webhookProcessed: {
+      type: Boolean,
+      default: false
+    },
+    processedAt: {
+      type: Date
+    },
     isDeleted: { type: Boolean, default: false }
   },
   { timestamps: true }
 );
 
+PaymentSchema.index({ orderId: 1 });
+PaymentSchema.index({ paymentIntentId: 1 });
+PaymentSchema.index({ userId: 1, paymentStatus: 1 });
 MongooseHelper.applyToJSONTransform(PaymentSchema);
 MongooseHelper.findExistence(PaymentSchema);
 

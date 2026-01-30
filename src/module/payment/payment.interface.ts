@@ -7,10 +7,12 @@ export interface IPayment {
     paymentIntentId: string,
     amount: number,
     currency: string,
-    paymentStatus: string
+    paymentStatus: 'pending' | 'succeeded' | 'failed' | 'refunded';
     paymentMethod: string;
     metadata: Record<string, unknown>
     payStatus: boolean;
+    webhookProcessed?: boolean;
+    processedAt?: Date;
     isDeleted: boolean
 }
 
