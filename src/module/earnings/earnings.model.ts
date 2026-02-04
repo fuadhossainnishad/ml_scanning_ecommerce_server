@@ -45,6 +45,8 @@ const EarningsSchema = new Schema<IEarnings>({
     timestamps: true
 })
 
+
+
 MongooseHelper.applyToJSONTransform(EarningsSchema)
 MongooseHelper.findExistence(EarningsSchema)
 
