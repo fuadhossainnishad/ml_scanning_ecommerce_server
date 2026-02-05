@@ -17,11 +17,11 @@ router.post(
 //     PaymentController.paymentWithSaveCard
 // );
 
-router.post(
-    '/webhook',
-    express.raw({ type: 'application/json' }),
-    PaymentController.webhooks
-);
+// router.post(
+//     '/webhook',
+//     express.raw({ type: 'application/json' }),
+//     PaymentController.webhooks
+// );
 
 const PaymentRouter = router;
 export default PaymentRouter;

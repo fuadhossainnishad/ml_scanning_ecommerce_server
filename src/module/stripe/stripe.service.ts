@@ -61,24 +61,82 @@ const createStripePriceId = async (payload: ISubscription): Promise<string> => {
   return stripe_price.id
 }
 
+// export const handleStripeWebhook = async (payload: IWebhooks) => {
+//   const { rawbody, sig } = payload;
+//   const event = stripe.webhooks.constructEvent(
+//     rawbody,
+//     sig!,
+//     config.stripe.webHookSecret!
+//   );
+//   console.log("webhook event: ", event)
+//   if (!event || event.type !== "payment_intent.succeeded") {
+//     throw new AppError(httpStatus.NOT_FOUND, "No webhook event have found");
+//   }
+//   const paymentIntent = event.data.object as Stripe.PaymentIntent;
+
+//   if (!paymentIntent || paymentIntent.status !== "succeeded") {
+//     throw new AppError(httpStatus.NOT_FOUND, "No payment intent found");
+//   }
+
+//   return { paymentIntent }
+
+// };
+
+// stripe.service.ts
+// stripe.service.ts
 export const handleStripeWebhook = async (payload: IWebhooks) => {
   const { rawbody, sig } = payload;
-  const event = stripe.webhooks.constructEvent(
-    rawbody,
-    sig!,
-    config.stripe.webHookSecret!
-  );
-  if (!event || event.type !== "payment_intent.succeeded") {
-    throw new AppError(httpStatus.NOT_FOUND, "No webhook event have found");
-  }
-  const paymentIntent = event.data.object as Stripe.PaymentIntent;
 
-  if (!paymentIntent || paymentIntent.status !== "succeeded") {
-    throw new AppError(httpStatus.NOT_FOUND, "No payment intent found");
+  console.log("🔍 Webhook verification started");
+  console.log("Webhook secret exists:", !!config.stripe.webHookSecret);
+  console.log("Raw body is Buffer:", Buffer.isBuffer(rawbody));
+
+  if (!config.stripe.webHookSecret) {
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Webhook secret not configured"
+    );
   }
 
-  return { paymentIntent }
+  try {
+    const event = stripe.webhooks.constructEvent(
+      rawbody,
+      sig!,
+      config.stripe.webHookSecret!
+    );
 
+    console.log("✅ Event constructed:", event.type);
+    console.log("Event ID:", event.id);
+
+    // Handle different event types
+    switch (event.type) {
+      case "payment_intent.succeeded":
+        const paymentIntentSucceeded = event.data.object as Stripe.PaymentIntent;
+        console.log("💰 Payment succeeded:", paymentIntentSucceeded.id);
+        return { paymentIntent: paymentIntentSucceeded };
+
+      case "payment_intent.payment_failed":
+        const paymentIntentFailed = event.data.object as Stripe.PaymentIntent;
+        console.log("❌ Payment failed:", paymentIntentFailed.id);
+        return { paymentIntent: paymentIntentFailed };
+
+      case "payment_intent.canceled":
+        const paymentIntentCanceled = event.data.object as Stripe.PaymentIntent;
+        console.log("🚫 Payment canceled:", paymentIntentCanceled.id);
+        return { paymentIntent: paymentIntentCanceled };
+
+      default:
+        console.log(`ℹ️ Unhandled event type: ${event.type}`);
+        // Return null for unhandled events - this is IMPORTANT!
+        return { paymentIntent: null };
+    }
+  } catch (error: any) {
+    console.error("❌ Webhook construction error:", error.message);
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Webhook verification failed: ${error.message}`
+    );
+  }
 };
 
 const CreateSetupIntent = async (customerId: string) => {
