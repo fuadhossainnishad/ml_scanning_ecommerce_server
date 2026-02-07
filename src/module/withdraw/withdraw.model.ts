@@ -1,6 +1,7 @@
+// withdraw/withdraw.model.ts
 import { model, Model, Schema } from "mongoose";
-import { IWithdraw, WithdrawStatus } from "./withdraw.interface";
 import MongooseHelper from "../../utility/mongoose.helpers";
+import { IWithdraw, WithdrawStatus } from "./withdraw.interface";
 
 const WithdrawSchema = new Schema<IWithdraw>({
     brandId: {
@@ -8,18 +9,31 @@ const WithdrawSchema = new Schema<IWithdraw>({
         ref: 'Brand',
         required: true
     },
-    bank_account_id: {
-        type: String,
-        required: true
-    },
     amount: {
         type: Number,
         required: true
     },
-    withdrawStatus: {
+    currency: {
+        type: String,
+        default: 'usd'
+    },
+    stripe_transfer_id: {
+        type: String
+    },
+    status: {
         type: String,
         enum: Object.values(WithdrawStatus),
         default: WithdrawStatus.PENDING
+    },
+    failureReason: {
+        type: String
+    },
+    requestedAt: {
+        type: Date,
+        default: Date.now
+    },
+    processedAt: {
+        type: Date
     },
     isDeleted: {
         type: Boolean,
@@ -27,10 +41,10 @@ const WithdrawSchema = new Schema<IWithdraw>({
     }
 }, {
     timestamps: true
-})
+});
 
-MongooseHelper.applyToJSONTransform(WithdrawSchema)
-MongooseHelper.findExistence(WithdrawSchema)
+MongooseHelper.applyToJSONTransform(WithdrawSchema);
+MongooseHelper.findExistence(WithdrawSchema);
 
-const Withdraw: Model<IWithdraw> = model<IWithdraw>('Withdraw', WithdrawSchema)
-export default Withdraw
+const Withdraw: Model<IWithdraw> = model<IWithdraw>('Withdraw', WithdrawSchema);
+export default Withdraw;

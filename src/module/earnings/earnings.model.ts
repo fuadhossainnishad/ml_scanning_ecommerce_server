@@ -1,18 +1,20 @@
+// earnings/earnings.model.ts
 import { model, Model, Schema } from "mongoose";
-import { IEarnings, WithdrawStatus } from "./earnings.interface";
 import MongooseHelper from "../../utility/mongoose.helpers";
+import { IEarnings } from "./earnings.interface";
 
 const EarningsSchema = new Schema<IEarnings>({
     brandId: {
         type: Schema.Types.ObjectId,
         ref: 'Brand',
-        required: true
+        required: true,
+        unique: true
     },
-    stripe_accounts_id: {
+    stripe_account_id: {
         type: String,
         default: ''
     },
-    ready_for_withdraw: {
+    onboarding_completed: {
         type: Boolean,
         default: false
     },
@@ -20,22 +22,17 @@ const EarningsSchema = new Schema<IEarnings>({
         type: Number,
         default: 0
     },
-    totalWithdraw: {
+    totalWithdrawn: {
         type: Number,
         default: 0
     },
-    available: {
+    pendingBalance: {
         type: Number,
         default: 0
     },
-    withdrawPending: {
+    availableBalance: {
         type: Number,
         default: 0
-    },
-    withdrawStatus: {
-        type: String,
-        enum: Object.values(WithdrawStatus),
-        default: WithdrawStatus.NONE
     },
     isDeleted: {
         type: Boolean,
@@ -43,12 +40,10 @@ const EarningsSchema = new Schema<IEarnings>({
     }
 }, {
     timestamps: true
-})
+});
 
+MongooseHelper.applyToJSONTransform(EarningsSchema);
+MongooseHelper.findExistence(EarningsSchema);
 
-
-MongooseHelper.applyToJSONTransform(EarningsSchema)
-MongooseHelper.findExistence(EarningsSchema)
-
-const Earning: Model<IEarnings> = model<IEarnings>('Earning', EarningsSchema)
-export default Earning
+const Earning: Model<IEarnings> = model<IEarnings>('Earning', EarningsSchema);
+export default Earning;

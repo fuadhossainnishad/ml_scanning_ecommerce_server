@@ -8,6 +8,8 @@ import Order from './order.model';
 import { IOrder, RemindeStatus, SellerStatus } from "./order.interface";
 import { idConverter } from "../../utility/idConverter";
 import OrderServices from "./order.services";
+import { Types } from "mongoose";
+import Earning from "../earnings/earnings.model";
 
 const getOrders: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
@@ -121,6 +123,10 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
             cartProductId: await idConverter(cartProductId),
             userId: req.user._id!,
         };
+        await releaseFundsDeliveredItem(
+            await idConverter(cartProductId),
+            req.user._id
+        );
         next()
     }
     sendResponse(res, {
@@ -148,6 +154,68 @@ const getTransaction: RequestHandler = catchAsync(async (req, res) => {
         data: result,
     });
 })
+// Helper function to release funds when item is delivered
+const releaseFundsDeliveredItem = async function releaseFundsForDeliveredItem(
+    cartProductId: Types.ObjectId,
+    brandId: Types.ObjectId
+) {
+    try {
+        // Find the order with this cart product
+        const order = await Order.findOne({
+            'items.cartProductId': cartProductId,
+            'items.sellerStatus': SellerStatus.DELIVERED
+        }).populate({
+            path: 'cartId',
+            populate: {
+                path: 'products.productId'
+            }
+        });
+
+        if (!order) {
+            console.error("Order not found for delivered item");
+            return;
+        }
+
+        const cart = order.cartId as any;
+        const PLATFORM_FEE_RATE = 0.10;
+
+        // Find the specific product in cart
+        const cartProduct = cart.products.find(
+            (p: any) => p._id.toString() === cartProductId.toString()
+        );
+
+        if (!cartProduct) {
+            console.error("Cart product not found");
+            return;
+        }
+
+        // Calculate amount for this specific product
+        const productTotal = cartProduct.price * cartProduct.quantity;
+        const platformFee = productTotal * PLATFORM_FEE_RATE;
+        const brandAmount = productTotal - platformFee;
+
+        console.log(`💰 Releasing $${brandAmount} for brand ${brandId}`);
+        console.log(`   Product total: $${productTotal}`);
+        console.log(`   Platform fee: $${platformFee}`);
+
+        // Move from pending to available
+        const updated = await Earning.findOneAndUpdate(
+            { brandId },
+            {
+                $inc: {
+                    pendingBalance: -brandAmount,
+                    availableBalance: brandAmount,
+                },
+            },
+            { upsert: true, new: true }
+        );
+
+        console.log(`✅ Funds released! New available balance: $${updated?.availableBalance}`);
+
+    } catch (error) {
+        console.error("Error releasing funds:", error);
+    }
+}
 
 const OrderController = {
     getOrders,

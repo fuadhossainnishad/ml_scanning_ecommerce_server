@@ -1,18 +1,24 @@
-import { Types } from "mongoose";
+// withdraw/withdraw.interface.ts
+import { Schema } from "mongoose";
 
 export enum WithdrawStatus {
-    SUCCESS = 'success',
     PENDING = 'pending',
-    CANCEL = 'cancel',
-    NONE = 'none'
+    PROCESSING = 'processing',
+    COMPLETED = 'completed',
+    FAILED = 'failed',
+    CANCELLED = 'cancelled'
 }
 
 export interface IWithdraw {
-    brandId: Types.ObjectId,
-    bank_account_id: string
-    amount: number
-    withdrawStatus: WithdrawStatus
-    isDeleted: boolean
-    createdAt: Date
-    updatedAt: Date
+    brandId: Schema.Types.ObjectId;
+    amount: number;
+    currency: string;
+    stripe_transfer_id?: string;
+    status: WithdrawStatus;
+    failureReason?: string;
+    requestedAt: Date;
+    processedAt?: Date;
+    isDeleted: boolean;
+    createdAt: Date;
+    updatedAt: Date;
 }

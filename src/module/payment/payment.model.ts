@@ -58,8 +58,8 @@ const PaymentSchema: Schema<IPayment> = new Schema(
   { timestamps: true }
 );
 
-PaymentSchema.index({ orderId: 1 });
-PaymentSchema.index({ paymentIntentId: 1 });
+PaymentSchema.index({ orderId: 1 }, { unique: true });
+PaymentSchema.index({ paymentIntentId: 1 }, { unique: true });
 PaymentSchema.index({ userId: 1, paymentStatus: 1 });
 MongooseHelper.applyToJSONTransform(PaymentSchema);
 MongooseHelper.findExistence(PaymentSchema);
