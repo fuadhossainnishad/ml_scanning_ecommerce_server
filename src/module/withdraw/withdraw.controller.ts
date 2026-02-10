@@ -46,16 +46,24 @@ const initiateOnboarding: RequestHandler = catchAsync(async (req, res) => {
     // Generate onboarding link
     const accountLink = await StripeConnectService.createAccountLink({
         accountId: stripeAccountId,
-        refreshUrl: `${config.frontendUrl}/brand/withdraw/onboarding/refresh`,
-        returnUrl: `${config.frontendUrl}/brand/withdraw/onboarding/complete`,
+        refreshUrl: `${config.frontendUrl}/stripe/refresh`,
+        returnUrl: `${config.frontendUrl}/stripe/complete`,
     });
+    console.log("accountLink:", accountLink)
 
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.OK,
-        message: 'Complete onboarding to enable withdrawals',
+        message: 'Open the onboarding URL in a webview. The app should poll /onboarding/status to check completion.',
         data: {
             onboarding_url: accountLink.url,
+            stripe_account_id: stripeAccountId,
+            // Instructions for mobile app
+            instructions: {
+                step1: 'Open onboarding_url in a WebView',
+                step2: 'Poll GET /api/v1/withdraw/onboarding/status every 3 seconds',
+                step3: 'When onboarding_completed is true, close WebView',
+            }
         },
     });
 });
@@ -148,11 +156,11 @@ const instantWithdraw: RequestHandler = catchAsync(async (req, res) => {
 
     const { amount } = req.body;
 
-    if (!amount || amount <= 0) {
+    if (!Number(amount) || Number(amount) <= 0) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Invalid amount');
     }
 
-    const MIN_WITHDRAWAL = 10;
+    const MIN_WITHDRAWAL = 100;
     if (amount < MIN_WITHDRAWAL) {
         throw new AppError(
             httpStatus.BAD_REQUEST,

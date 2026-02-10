@@ -37,4 +37,5 @@ export default {
   scanning_url: process.env.SCANNING_URL!,
   embedding_url: process.env.EMBEDDING_URL!,
   local: process.env.LOCAL!,
+  frontendUrl: process.env.FRONTEND_URL!
 };

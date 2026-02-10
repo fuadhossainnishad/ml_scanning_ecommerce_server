@@ -328,12 +328,12 @@ const getEarningsSummary: RequestHandler = catchAsync(async (req, res) => {
 
     const monthlyResult = await Order.aggregate(monthlyPipeline);
     const monthlyEarning = monthlyResult.length > 0 ? monthlyResult[0].monthlyEarning : 0;
-    const available = (earning?.totalEarnings || 0) - (earning?.totalWithdraw || 0)
+    const available = (earning?.totalEarnings || 0) - (earning?.totalWithdrawn || 0)
 
     const summary = {
         totalEarning: earning?.totalEarnings || 0,
         monthlyEarning,
-        totalPending: earning?.withdrawPending || 0,
+        totalPending: earning?.pendingBalance || 0,
         available: available || 0,
     };
 
