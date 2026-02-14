@@ -16,6 +16,8 @@ import Cart from "../cart/cart.model";
 import stripe from '../../app/config/stripe.config';
 import config from "../../app/config";
 import StripeUtils from "../../utility/stripe.utils";
+import { Types } from "mongoose";
+import Reward from "../reward/reward.model";
 
 const paymentWithSaveCard: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
@@ -297,6 +299,13 @@ const webhooks: RequestHandler = async (req, res) => {
             } else {
                 console.error("⚠️ Failed to update order");
             }
+            await trackUserRewards(
+                await idConverter(metadata.orderId),
+                amount / 100,
+                await idConverter(metadata.userId)
+            );
+            console.log("✅ Payment, cart, order, and rewards updated");
+
         }
 
         console.log("✅ Webhook processing completed");
@@ -688,12 +697,40 @@ const payment: RequestHandler = catchAsync(async (req, res) => {
     });
 });
 
+// Helper to track user rewards when payment succeeds
+async function trackUserRewards(orderId: Types.ObjectId, paymentAmount: number, userId: Types.ObjectId) {
+    try {
+        console.log("🎁 Tracking user rewards for order:", orderId);
+
+        const REWARD_RATE = 0.10; // 10% rewards
+        const rewardAmount = paymentAmount * REWARD_RATE;
+
+        // Add to pending rewards
+        await Reward.findOneAndUpdate(
+            { userId },
+            {
+                $inc: {
+                    totalSpent: paymentAmount,
+                    pendingRewards: rewardAmount,
+                    totalEarned: rewardAmount
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+        console.log(`✅ User ${userId} earned $${rewardAmount} in pending rewards`);
+
+    } catch (error) {
+        console.error("Error tracking user rewards:", error);
+    }
+}
 
 const PaymentController = {
     paymentWithSaveCard,
     paymentIntent,
     webhooks,
     test,
-    payment
+    payment,
+    trackUserRewards
 }
 export default PaymentController

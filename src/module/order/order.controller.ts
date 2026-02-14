@@ -10,6 +10,7 @@ import { idConverter } from "../../utility/idConverter";
 import OrderServices from "./order.services";
 import { Types } from "mongoose";
 import Earning from "../earnings/earnings.model";
+import Reward from "../reward/reward.model";
 
 const getOrders: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
@@ -127,6 +128,10 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
             await idConverter(cartProductId),
             req.user._id
         );
+        await releaseRewardsForDeliveredItem(
+            await idConverter(cartProductId),
+            req.user._id
+        );
         next()
     }
     sendResponse(res, {
@@ -216,10 +221,63 @@ const releaseFundsDeliveredItem = async function releaseFundsForDeliveredItem(
         console.error("Error releasing funds:", error);
     }
 }
+async function releaseRewardsForDeliveredItem(
+    cartProductId: Types.ObjectId,
+    userId: Types.ObjectId
+) {
+    try {
+        const order = await Order.findOne({
+            'items.cartProductId': cartProductId,
+            'items.sellerStatus': SellerStatus.DELIVERED
+        }).populate({
+            path: 'cartId',
+            populate: 'products.productId'
+        });
 
+        if (!order) {
+            console.error("Order not found for delivered item");
+            return;
+        }
+
+        const cart = order.cartId as any;
+        const REWARD_RATE = 0.10;
+
+        const cartProduct = cart.products.find(
+            (p: any) => p._id.toString() === cartProductId.toString()
+        );
+
+        if (!cartProduct) {
+            console.error("Cart product not found");
+            return;
+        }
+
+        const productTotal = cartProduct.price * cartProduct.quantity;
+        const rewardAmount = productTotal * REWARD_RATE;
+
+        console.log(`🎁 Releasing $${rewardAmount} rewards for user ${userId}`);
+
+        // Move from pending to available
+        await Reward.findOneAndUpdate(
+            { userId },
+            {
+                $inc: {
+                    pendingRewards: -rewardAmount,
+                    availableRewards: rewardAmount,
+                },
+            },
+            { upsert: true, new: true }
+        );
+
+        console.log(`✅ Rewards released! User can now redeem.`);
+
+    } catch (error) {
+        console.error("Error releasing rewards:", error);
+    }
+}
 const OrderController = {
     getOrders,
     updateStatus,
-    getTransaction
+    getTransaction,
+    releaseRewardsForDeliveredItem
 }
 export default OrderController

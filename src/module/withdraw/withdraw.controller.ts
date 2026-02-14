@@ -154,12 +154,12 @@ const instantWithdraw: RequestHandler = catchAsync(async (req, res) => {
         throw new AppError(httpStatus.UNAUTHORIZED, 'Only brands can withdraw');
     }
 
-    const { amount } = req.body;
+    const { amount } = req.body.data;
+    console.log("Amount:", Number(amount))
 
     if (!Number(amount) || Number(amount) <= 0) {
         throw new AppError(httpStatus.BAD_REQUEST, 'Invalid amount');
     }
-
     const MIN_WITHDRAWAL = 100;
     if (amount < MIN_WITHDRAWAL) {
         throw new AppError(
@@ -169,7 +169,7 @@ const instantWithdraw: RequestHandler = catchAsync(async (req, res) => {
     }
 
     const earning = await Earning.findOne({ brandId: req.user._id });
-
+    console.log("earning:", earning)
     if (!earning) {
         throw new AppError(httpStatus.NOT_FOUND, 'No earnings found');
     }
@@ -177,7 +177,7 @@ const instantWithdraw: RequestHandler = catchAsync(async (req, res) => {
     if (!earning.onboarding_completed || !earning.stripe_account_id) {
         throw new AppError(
             httpStatus.BAD_REQUEST,
-            'Please complete Stripe onboarding first'
+            'Please connect your stripe account first'
         );
     }
 
