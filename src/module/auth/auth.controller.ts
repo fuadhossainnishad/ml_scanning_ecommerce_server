@@ -14,10 +14,7 @@ import { IBrand } from "../brand/brand.interface";
 import Admin from '../admin/admin.model';
 import Brand from "../brand/brand.model";
 import StripeUtils from "../../utility/stripe.utils";
-import NotificationServices from "../notification/notification2.service";
 import Reward from "../reward/reward.model";
-import { NotificationType } from "../notification/notification.interface";
-import NotificationService from "../notification/notification.service";
 
 
 export const signUp: RequestHandler = catchAsync(async (req, res) => {
@@ -230,26 +227,59 @@ const updatePassword: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+// Legacy FCM update endpoint - backward compatible
 const updateFcm: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated", "");
+    throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
   }
-  const { _id } = req.user
-  const { fcm } = req.body.data
+
+  const { _id } = req.user;
+  const { fcm } = req.body.data;
 
   if (!fcm) {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Fcm token needed for push notification", "");
+    throw new AppError(httpStatus.BAD_REQUEST, "FCM token needed for push notification");
   }
 
-  const result = await GenericService.updateResources<IUser>(User, _id!, { fcm });
+  // Check if token already exists in fcmTokens array
+  const user = await Admin.findById(_id);
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  const tokenExists = user.fcmTokens?.some((t: any) => t.token === fcm);
+
+  if (!tokenExists) {
+    // Add to new fcmTokens array
+    await Admin.findByIdAndUpdate(_id, {
+      $push: {
+        fcmTokens: {
+          token: fcm,
+          device: 'unknown',
+          addedAt: new Date()
+        }
+      },
+      // Also update legacy fcm field for backward compatibility
+      $set: {
+        fcm: fcm
+      }
+    });
+
+    console.log(`✅ FCM token registered (legacy endpoint) for ${req.user.role} ${_id}`);
+  } else {
+    // Just update the legacy fcm field
+    await Admin.findByIdAndUpdate(_id, {
+      $set: { fcm: fcm }
+    });
+  }
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Fcm updated successfully",
-    data: result,
+    message: "FCM updated successfully",
+    data: { fcmToken: fcm }
   });
-})
+});
 
 const AuthController = {
   signUp,

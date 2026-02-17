@@ -9,6 +9,8 @@ import NotificationServices from "../notification/notification2.service";
 import { IPost } from "./post.interface";
 import Post from "./post.model";
 import PostServices from "./post.services";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 const createPost: RequestHandler = catchAsync(async (req, res) => {
   if (req.user?.role !== "Brand" && req.user?.role !== "User") {
@@ -157,13 +159,19 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
     await idConverter(PostId)
   );
 
-  await NotificationServices.sendNoification({
-    ownerId: req.user?._id,
-    key: "notification",
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: '👋 Welcome Back!',
+    body: `You logged in successfully`,
     data: {
-      message: `An Post deleted`,
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'login',
+      loginTime: new Date().toISOString()
     },
-    receiverId: [req.user?._id],
+    notifyAdmin: false // Don't notify admin for logins
   });
 
   sendResponse(res, {

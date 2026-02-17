@@ -13,6 +13,8 @@ import FavouritePost from "./favourite.post.model";
 import FavouriteProduct from "./favourite.product.model";
 import AggregationQueryBuilder from "../../app/builder/Builder";
 import { buildMeta } from "../stats/stats.services";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 const createFavouritePost: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
@@ -361,14 +363,19 @@ const deleteFavourite: RequestHandler = catchAsync(async (req, res) => {
     Post,
     await idConverter(PostId)
   );
-
-  await NotificationServices.sendNoification({
-    ownerId: req.user?._id,
-    key: "notification",
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: '👋 Welcome Back!',
+    body: `You logged in successfully`,
     data: {
-      message: `An Post deleted`,
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'favourite',
+      loginTime: new Date().toISOString()
     },
-    receiverId: [req.user?._id],
+    notifyAdmin: false // Don't notify admin for logins
   });
 
   sendResponse(res, {

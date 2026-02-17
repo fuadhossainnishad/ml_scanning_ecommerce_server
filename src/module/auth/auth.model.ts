@@ -50,6 +50,10 @@ export const SignupSchema: Schema = new Schema<IUser>({
     promotions: { type: Boolean, default: false },
     rewards: { type: Boolean, default: true },
     withdrawals: { type: Boolean, default: true }
+  },
+  fcm: {
+    type: String,
+    required: false
   }
 });
 

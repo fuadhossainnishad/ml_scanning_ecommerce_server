@@ -5,12 +5,13 @@ import AppError from "../../app/error/AppError";
 import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
-import NotificationServices from "../notification/notification2.service";
 import { IPost } from "../post/post.interface";
 import Post from "../post/post.model";
 import SavePost from "./Save.model";
 import { ISavePost } from "./Save.interface";
 import SavePostServices from "./Save.services";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 const createSavePost: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
@@ -251,13 +252,19 @@ const deleteSavePost: RequestHandler = catchAsync(async (req, res) => {
     await idConverter(PostId)
   );
 
-  await NotificationServices.sendNoification({
-    ownerId: req.user?._id,
-    key: "notification",
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: '👋 Welcome Back!',
+    body: `You logged in successfully`,
     data: {
-      message: `An Post deleted`,
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'post saved',
+      loginTime: new Date().toISOString()
     },
-    receiverId: [req.user?._id],
+    notifyAdmin: false // Don't notify admin for logins
   });
 
   sendResponse(res, {

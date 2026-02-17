@@ -6,6 +6,7 @@ export interface IUser extends ISignup, IAdmin {
   hometown: string;
   favouriteStyles: string[],
   theme:string
+  fcm?: string; 
 }
 
 export type TUserUpdate = Partial<IUser> & {

@@ -108,7 +108,7 @@ class NotificationService {
 
         if (invalidTokens.length > 0) {
             console.log(`🧹 Cleaning ${invalidTokens.length} invalid tokens`);
-            
+
             for (const user of users) {
                 await Admin.updateOne(
                     { _id: user._id },

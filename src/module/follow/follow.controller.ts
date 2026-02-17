@@ -9,6 +9,8 @@ import NotificationServices from "../notification/notification2.service";
 import Admin from "../admin/admin.model";
 import { IFollow } from "./follow.interface";
 import Follow from "./follow.model";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 
 const createFollow: RequestHandler = catchAsync(async (req, res) => {
@@ -337,13 +339,19 @@ const deleteFollow: RequestHandler = catchAsync(async (req, res) => {
     await idConverter(FollowId)
   );
 
-  await NotificationServices.sendNoification({
-    ownerId: req.user?._id,
-    key: "notification",
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: '👋 Welcome Back!',
+    body: `You logged in successfully`,
     data: {
-      message: `An Follow deleted`,
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'follow',
+      loginTime: new Date().toISOString()
     },
-    receiverId: [req.user?._id],
+    notifyAdmin: false // Don't notify admin for logins
   });
 
   sendResponse(res, {

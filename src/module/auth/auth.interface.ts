@@ -47,7 +47,9 @@ export interface ISignup extends ISignIn {
   failed_attempts?: number
   stripe_customer_id: string;
   fcmTokens?: IFCMToken[];
-  notificationSettings?: INotificationSettings;  // agreeTcp: boolean;
+  notificationSettings?: INotificationSettings;
+  fcm?: string;
+  // agreeTcp: boolean;
 }
 
 export interface IOtp {

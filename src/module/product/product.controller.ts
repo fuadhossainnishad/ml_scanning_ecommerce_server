@@ -10,6 +10,8 @@ import StripeServices from "../stripe/stripe.service";
 import { IProduct } from "./product.interface";
 import Product from "./product.model";
 import StatsServices from "../stats/stats.services";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 const createProduct: RequestHandler = catchAsync(async (req, res) => {
   if (req.user?.role !== "Brand") {
@@ -64,14 +66,19 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
     );
   }
 
-  await NotificationServices.sendNoification({
-    ownerId: req.user?._id,
-    key: "notification",
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: '👋 Welcome Back!',
+    body: `You logged in successfully`,
     data: {
-      id: result.Subsciption?._id.toString(),
-      message: `New subsciption added`,
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'product',
+      loginTime: new Date().toISOString()
     },
-    receiverId: [req.user?._id],
+    notifyAdmin: false // Don't notify admin for logins
   });
 
 
@@ -181,13 +188,19 @@ const deleteProduct: RequestHandler = catchAsync(async (req, res) => {
     'brandId'
   );
 
-  await NotificationServices.sendNoification({
-    ownerId: req.user?._id,
-    key: "notification",
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: '👋 Welcome Back!',
+    body: `You logged in successfully`,
     data: {
-      message: `An Product deleted`,
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'product',
+      loginTime: new Date().toISOString()
     },
-    receiverId: [req.user?._id],
+    notifyAdmin: false // Don't notify admin for logins
   });
 
   sendResponse(res, {

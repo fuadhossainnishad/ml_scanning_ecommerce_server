@@ -22,6 +22,10 @@ export const UserSchema: Schema = new Schema<IUser>(
       type: String,
       default: '',
     },
+    fcm: {
+      type: String,
+      required: false
+    }
   },
   { timestamps: true, collection: "users" }
 )
