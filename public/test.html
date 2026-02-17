@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Testing socket</title>
+  </head>
+  <body>
+    <h1>testing socket</h1>
+    <div id="message"></div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io("https://1188a25098bc.ngrok-free.app");
+      const message = document.getElementById("message");
+
+      socket.on("connect", () => {
+        console.log("User connected", socket.id);
+        socket.emit("join", "test-admin", true);
+      });
+
+      socket.on("notification", (socket) => {
+        message.innerText = JSON.stringify(socket);
+        console.log("socket:", socket);
+      });
+    </script>
+  </body>
+</html>
