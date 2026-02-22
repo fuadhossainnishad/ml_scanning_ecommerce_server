@@ -18,12 +18,12 @@ router
     FavouriteController.getAllFavouriteProduct
   );
 
-// router
-//   .route("/post/:id")
-//   .post(
-//     auth("Brand", "User"),
-//     FavouriteController.createFavouriteProduct
-//   );
+router
+  .route("/post/:id")
+  .post(
+    auth("Brand", "User"),
+    FavouriteController.createFavouritePost
+  );
 
 // .patch(
 //   auth("Brand", "User"),

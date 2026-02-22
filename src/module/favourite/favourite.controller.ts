@@ -5,7 +5,7 @@ import AppError from "../../app/error/AppError";
 import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
-import NotificationServices from "../notification/notification2.service";
+// import NotificationServices from "../notification/notification2.service";
 import { IPost } from "../post/post.interface";
 import Post from "../post/post.model";
 import { IFavouritePost, IFavouriteProduct } from "./favourite.interface";
