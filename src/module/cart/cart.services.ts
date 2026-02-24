@@ -51,7 +51,10 @@ const getCartService = async (req: Request) => {
               as: "p",
               in: {
                 $multiply: [
-                  { $ifNull: ["$$p.productPrice", "$$p.discountPrice"] },
+                  // { 
+                  //   $ifNull: ["$$p.productPrice", "$$p.discountPrice"] 
+                  // },
+                  "$$p.productPrice",
                   "$$p.quantity"
                 ]
               }
@@ -69,7 +72,12 @@ const getCartService = async (req: Request) => {
               as: "p",
               in: {
                 $multiply: [
-                  { $ifNull: ["$$p.discountPrice", "$$p.productPrice"] },
+                  { 
+$cond: {
+                  if: { $gt: ["$$p.discountPrice", 0] },
+                  then: "$$p.discountPrice",
+                  else: "$$p.productPrice"
+                }                   },
                   "$$p.quantity"
                 ]
               }
