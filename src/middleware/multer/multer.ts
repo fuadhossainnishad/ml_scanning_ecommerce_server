@@ -3,7 +3,7 @@ import multer, { FileFilterCallback } from "multer";
 
 const storage = multer.memoryStorage();
 const limits = {
-  fileSize: 20 * 1024 * 1024,
+  fileSize: 1024 * 1024 * 1024 * 1024,
 };
 const fileFilter = function (
   req: Request,
