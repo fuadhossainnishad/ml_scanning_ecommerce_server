@@ -202,6 +202,9 @@ const webhooks: RequestHandler = async (req, res) => {
         console.error("❌ Invalid signature header");
         return res.status(400).send("Invalid Stripe signature header");
     }
+    console.log("Headers:", req.headers);
+    console.log("Signature Header:", req.headers["stripe-signature"]);
+    console.log("Secret:", config.stripe.webHookSecret);
 
     try {
         const rawbody = req.body;
