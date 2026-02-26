@@ -39,7 +39,6 @@ const PaymentSchema: Schema<IPayment> = new Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["card", "wallet", "paypal"],
       required: true
     },
     metadata: {
