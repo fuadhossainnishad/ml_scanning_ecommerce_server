@@ -154,7 +154,7 @@ const paymentIntent: RequestHandler = catchAsync(async (req, res) => {
     console.log("data:", req.body.data)
     const metadata = {
         address: JSON.stringify(req.body.data.address),
-        userId: req.user.userId,
+        userId: req.user._id.toString(),
         stripe_customer_id: customerId,
         orderId: order.order._id.toString(),
         cartId: order.order.cartId.toString()
