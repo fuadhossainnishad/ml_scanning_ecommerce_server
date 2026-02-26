@@ -207,8 +207,13 @@ const webhooks: RequestHandler = async (req, res) => {
     console.log("Secret:", config.stripe.webHookSecret);
 
     try {
-        const rawbody = req.body;
+        const rawbody = Buffer.isBuffer(req.body) 
+            ? req.body 
+            : Buffer.from(JSON.stringify(req.body));
 
+        console.log("Body type:", typeof req.body);
+        console.log("Is Buffer:", Buffer.isBuffer(req.body));
+        console.log("Body preview:", req.body?.toString?.().slice(0, 100));
         const { paymentIntent } = await StripeServices.handleStripeWebhook({
             sig: sig,
             rawbody: rawbody
