@@ -52,11 +52,31 @@ app.use(
   })
 );
 
-app.use(
-  '/api/v1/payment/webhook',
-  express.raw({ type: 'application/json' }),
-  PaymentController.webhooks
-);
+// ✅ BEFORE everything — intercept webhook at raw HTTP level
+app.post('/api/v1/payment/webhook', (req, res, next) => {
+    const chunks: Buffer[] = [];
+    
+    req.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+    });
+    
+    req.on('end', () => {
+        (req as any).rawBody = Buffer.concat(chunks);
+        req.body = (req as any).rawBody; // override body with raw buffer
+        next();
+    });
+
+    req.on('error', (err) => {
+        console.error('Stream error:', err);
+        res.status(500).send('Stream error');
+    });
+}, PaymentController.webhooks);
+
+// app.use(
+//   '/api/v1/payment/webhook',
+//   express.raw({ type: 'application/json' }),
+//   PaymentController.webhooks
+// );
 
 app.use("/api", rateLimiter);
 

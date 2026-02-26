@@ -97,10 +97,15 @@ export const handleStripeWebhook = async (payload: IWebhooks) => {
       "Webhook secret not configured"
     );
   }
+  const body = Buffer.isBuffer(rawbody)
+    ? rawbody
+    : Buffer.from(rawbody);
 
+  console.log("Body is Buffer:", Buffer.isBuffer(body));
+  console.log("Body length:", body.length);
   try {
     const event = stripe.webhooks.constructEvent(
-      rawbody,
+      body,          // ✅ use converted body
       sig!,
       config.stripe.webHookSecret!
     );
