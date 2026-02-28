@@ -167,7 +167,7 @@ const getProfileService = async (req: Request) => {
             $lookup: {
                 from: "follows",
                 let: {
-                    meId: new Types.ObjectId(currentUserId),
+                    meId: currentUserId,
                     targetId: "$_id",
                     targetRole: "$role",
                 },
@@ -198,7 +198,7 @@ const getProfileService = async (req: Request) => {
             $addFields: {
                 isFollowing: {
                     $cond: [
-                        { $ne: ["$_id", new Types.ObjectId(currentUserId)] },
+                        { $ne: ["$_id", currentUserId] },
                         { $gt: [{ $size: "$isFollowingData" }, 0] },
                         "$$REMOVE",
                     ],
