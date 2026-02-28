@@ -207,8 +207,8 @@ const webhooks: RequestHandler = async (req, res) => {
     console.log("Secret:", config.stripe.webHookSecret);
 
     try {
-        const rawbody = Buffer.isBuffer(req.body) 
-            ? req.body 
+        const rawbody = Buffer.isBuffer(req.body)
+            ? req.body
             : Buffer.from(JSON.stringify(req.body));
 
         console.log("Body type:", typeof req.body);
@@ -286,6 +286,7 @@ const webhooks: RequestHandler = async (req, res) => {
             );
 
             if (updateCart) {
+                console.log("✅ updateCart:", updateCart);
                 console.log("✅ Cart updated");
             } else {
                 console.error("⚠️ Failed to update cart");
@@ -303,6 +304,7 @@ const webhooks: RequestHandler = async (req, res) => {
             );
 
             if (updateOrder) {
+                console.log("✅ updateOrder:", updateOrder);
                 console.log("✅ Order updated");
             } else {
                 console.error("⚠️ Failed to update order");

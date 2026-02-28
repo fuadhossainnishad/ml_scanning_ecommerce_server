@@ -37,14 +37,16 @@ const getOrderService = async (req: Request) => {
           as: "cartData",
         },
       },
-      { $unwind: "$cartData" },
+      { $unwind: { path: "$cartData", preserveNullAndEmptyArrays: true } },
+      // { $unwind: "$cartData" },
       {
         $lookup: {
           from: "products",
           let: {
             productIds: {
               $map: {
-                input: "$cartData.products",
+                // input: "$cartData.products",
+                input: { $ifNull: ["$cartData.products", []] },
                 as: "p",
                 in: {
                   $cond: [
@@ -93,7 +95,8 @@ const getOrderService = async (req: Request) => {
                       $arrayElemAt: [
                         {
                           $filter: {
-                            input: "$cartData.products",
+                            input: { $ifNull: ["$cartData.products", []] },
+                            // input: "$cartData.products",
                             cond: {
                               $eq: [
                                 "$$this._id",
