@@ -177,7 +177,7 @@ const getOrderService = async (req: Request) => {
       {
         $addFields: {
           paymentMethod: { $ifNull: ["$payment.paymentMethod", "card"] },
-          paymentStatus: { $ifNull: ["$payment.paymentStatus", "pending"] },
+          // paymentStatus: { $ifNull: ["$payment.paymentStatus", "$paymentStatus"] },
           totalAmount: {
             $sum: {
               $map: {
@@ -185,7 +185,13 @@ const getOrderService = async (req: Request) => {
                 as: "item",
                 in: {
                   $multiply: [
-                    { $ifNull: ["$$item.discountPrice", "$$item.price"] },
+                    {
+                      $cond: {
+                        if: { $gt: ["$$item.discountPrice", 0] },
+                        then: "$$item.discountPrice",
+                        else: "$$item.price"
+                      }
+                    },
                     { $ifNull: ["$$item.quantity", 0] }
                   ]
                 }

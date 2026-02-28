@@ -224,127 +224,151 @@ const getMonthlyEarnings: RequestHandler = catchAsync(async (req, res) => {
     });
 });
 
+// const getEarningsSummary: RequestHandler = catchAsync(async (req, res) => {
+//     if (!req.user || req.user.role !== "Brand") {
+//         throw new AppError(httpStatus.UNAUTHORIZED, "Authenticated brand is required");
+//     }
+
+//     const brandId = req.user._id;
+
+//     // Fetch the brand's earning record
+//     const earning = await Earning.findOne({ brandId }).lean();
+//     // if (!earning) {
+//     //     throw new AppError(httpStatus.NOT_FOUND, "No earnings record found for this brand");
+//     // }
+
+//     // Compute current month earning
+//     const now = new Date();
+//     const currentYear = now.getFullYear();
+//     const currentMonth = now.getMonth() + 1; // 1-12
+
+//     // Aggregation pipeline for current month (similar lookups, sum earnings)
+//     const monthlyPipeline: PipelineStage[] = [
+//         // 1. Match orders with at least one DELIVERED item
+//         {
+//             $match: {
+//                 "items.sellerStatus": SellerStatus.DELIVERED
+//             }
+//         },
+//         // 2. Unwind items
+//         { $unwind: "$items" },
+//         // 3. Match DELIVERED items
+//         {
+//             $match: {
+//                 "items.sellerStatus": SellerStatus.DELIVERED
+//             }
+//         },
+//         // 4. Lookup specific cart product via pipeline to get quantity and productId
+//         {
+//             $lookup: {
+//                 from: "carts",
+//                 let: { cartId: "$cartId", cartProductId: "$items.cartProductId" },
+//                 pipeline: [
+//                     { $match: { $expr: { $eq: ["$_id", "$$cartId"] } } },
+//                     { $unwind: "$products" },
+//                     { $match: { $expr: { $eq: ["$products._id", "$$cartProductId"] } } },
+//                     { $project: { quantity: "$products.quantity", productId: "$products.productId" } }
+//                 ],
+//                 as: "cartProduct"
+//             }
+//         },
+//         // 5. Unwind cartProduct
+//         { $unwind: "$cartProduct" },
+//         // 6. Lookup product
+//         {
+//             $lookup: {
+//                 from: "products",
+//                 localField: "cartProduct.productId",
+//                 foreignField: "_id",
+//                 as: "product"
+//             }
+//         },
+//         // 7. Unwind product
+//         { $unwind: "$product" },
+//         // 8. Match by brandId and current month/year (fallback date)
+//         {
+//             $match: {
+//                 "product.brandId": brandId,
+//                 $expr: {
+//                     $and: [
+//                         {
+//                             $eq: [
+//                                 { $year: { $ifNull: ["$items.deliveredAt", "$updatedAt"] } },
+//                                 currentYear
+//                             ]
+//                         },
+//                         {
+//                             $eq: [
+//                                 { $month: { $ifNull: ["$items.deliveredAt", "$updatedAt"] } },
+//                                 currentMonth
+//                             ]
+//                         }
+//                     ]
+//                 }
+//             }
+//         },
+//         // 9. Project earnings
+//         {
+//             $project: {
+//                 earnings: {
+//                     $multiply: [
+//                         { $ifNull: ["$product.discountPrice", "$product.price"] },
+//                         "$cartProduct.quantity"
+//                     ]
+//                 }
+//             }
+//         },
+//         {
+//             $group: {
+//                 _id: null,
+//                 monthlyEarning: { $sum: "$earnings" }
+//             }
+//         }
+//     ];
+
+//     const monthlyResult = await Order.aggregate(monthlyPipeline);
+//     const monthlyEarning = monthlyResult.length > 0 ? monthlyResult[0].monthlyEarning : 0;
+//     const available = (earning?.totalEarnings || 0) - (earning?.totalWithdrawn || 0)
+
+//     const summary = {
+//         totalEarning: earning?.totalEarnings || 0,
+//         monthlyEarning,
+//         totalPending: earning?.pendingBalance || 0,
+//         available: available || 0,
+//     };
+
+//     sendResponse(res, {
+//         success: true,
+//         statusCode: httpStatus.OK,
+//         message: "Earnings summary retrieved successfully",
+//         data: summary,
+//     });
+// });
+
 const getEarningsSummary: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user || req.user.role !== "Brand") {
         throw new AppError(httpStatus.UNAUTHORIZED, "Authenticated brand is required");
     }
 
-    const brandId = req.user._id;
+    const earning = await Earning.findOne({ brandId: req.user._id }).lean();
 
-    // Fetch the brand's earning record
-    const earning = await Earning.findOne({ brandId }).lean();
-    // if (!earning) {
-    //     throw new AppError(httpStatus.NOT_FOUND, "No earnings record found for this brand");
-    // }
-
-    // Compute current month earning
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // 1-12
-
-    // Aggregation pipeline for current month (similar lookups, sum earnings)
-    const monthlyPipeline: PipelineStage[] = [
-        // 1. Match orders with at least one DELIVERED item
-        {
-            $match: {
-                "items.sellerStatus": SellerStatus.DELIVERED
-            }
-        },
-        // 2. Unwind items
-        { $unwind: "$items" },
-        // 3. Match DELIVERED items
-        {
-            $match: {
-                "items.sellerStatus": SellerStatus.DELIVERED
-            }
-        },
-        // 4. Lookup specific cart product via pipeline to get quantity and productId
-        {
-            $lookup: {
-                from: "carts",
-                let: { cartId: "$cartId", cartProductId: "$items.cartProductId" },
-                pipeline: [
-                    { $match: { $expr: { $eq: ["$_id", "$$cartId"] } } },
-                    { $unwind: "$products" },
-                    { $match: { $expr: { $eq: ["$products._id", "$$cartProductId"] } } },
-                    { $project: { quantity: "$products.quantity", productId: "$products.productId" } }
-                ],
-                as: "cartProduct"
-            }
-        },
-        // 5. Unwind cartProduct
-        { $unwind: "$cartProduct" },
-        // 6. Lookup product
-        {
-            $lookup: {
-                from: "products",
-                localField: "cartProduct.productId",
-                foreignField: "_id",
-                as: "product"
-            }
-        },
-        // 7. Unwind product
-        { $unwind: "$product" },
-        // 8. Match by brandId and current month/year (fallback date)
-        {
-            $match: {
-                "product.brandId": brandId,
-                $expr: {
-                    $and: [
-                        {
-                            $eq: [
-                                { $year: { $ifNull: ["$items.deliveredAt", "$updatedAt"] } },
-                                currentYear
-                            ]
-                        },
-                        {
-                            $eq: [
-                                { $month: { $ifNull: ["$items.deliveredAt", "$updatedAt"] } },
-                                currentMonth
-                            ]
-                        }
-                    ]
-                }
-            }
-        },
-        // 9. Project earnings
-        {
-            $project: {
-                earnings: {
-                    $multiply: [
-                        { $ifNull: ["$product.discountPrice", "$product.price"] },
-                        "$cartProduct.quantity"
-                    ]
-                }
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                monthlyEarning: { $sum: "$earnings" }
-            }
-        }
-    ];
-
-    const monthlyResult = await Order.aggregate(monthlyPipeline);
-    const monthlyEarning = monthlyResult.length > 0 ? monthlyResult[0].monthlyEarning : 0;
-    const available = (earning?.totalEarnings || 0) - (earning?.totalWithdrawn || 0)
-
-    const summary = {
-        totalEarning: earning?.totalEarnings || 0,
-        monthlyEarning,
-        totalPending: earning?.pendingBalance || 0,
-        available: available || 0,
-    };
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const breakdown = earning?.monthlyBreakdown as Record<string, number> | undefined;
+    const monthlyEarning = breakdown?.[currentMonthKey] || 0;
 
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.OK,
         message: "Earnings summary retrieved successfully",
-        data: summary,
+        data: {
+            totalEarning: earning?.totalEarnings || 0,
+            monthlyEarning,
+            totalPending: earning?.pendingBalance || 0,
+            available: earning?.availableBalance || 0,
+        },
     });
 });
-
 const EarningsController = {
     insertEarning,
     getMonthlyEarnings,
