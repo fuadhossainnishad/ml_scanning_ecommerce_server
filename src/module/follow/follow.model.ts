@@ -14,6 +14,7 @@ const FollowBaseSchema: Schema = new Schema<IFollowBase>({
     required: true,
     enum: ['User', 'Brand', 'Admin']
   },
+  isDeleted: { type: Boolean, default: false }
 })
 
 const FollowSchema: Schema = new Schema<IFollow>({

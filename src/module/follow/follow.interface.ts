@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 export interface IFollowBase {
   id: Types.ObjectId
   type: string
+  isDeleted: boolean
 }
 
 export interface IFollow {

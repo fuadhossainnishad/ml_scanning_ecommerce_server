@@ -13,6 +13,112 @@ import NotificationService from "../notification/notification.service";
 import { NotificationType } from "../notification/notification.interface";
 
 
+// const createFollow: RequestHandler = catchAsync(async (req, res) => {
+//   if (!req.user) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Authenticated user is required", "");
+//   }
+
+//   const { _id: authorId, role: authorType } = req.user;
+//   const { id: targetUserId } = req.params;
+
+//   console.log("author id:", authorId);
+//   console.log("following id:", targetUserId);
+
+//   if (authorId.toString() === targetUserId.toString()) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "You cannot follow yourself", "");
+//   }
+
+//   const convertedId = await idConverter(targetUserId);
+//   if (!convertedId) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Invalid target user ID", "");
+//   }
+
+//   const targetUser = await Admin.findOne({ _id: convertedId }, { role: 1 });
+//   if (!targetUser) {
+//     throw new AppError(httpStatus.NOT_FOUND, "User to follow not found", "");
+//   }
+
+//   // Find follow document for the current user
+//   const existingFollowDoc = await Follow.findOne({ authorId, authorType });
+
+//   if (existingFollowDoc) {
+//     // Check if already following this user
+//     const existing = existingFollowDoc.following.find(
+//       (f) => f.id.toString() === convertedId.toString()
+//     );
+
+//     if (existing && !existingFollowDoc.isDeleted) {
+//       // Already following → Unfollow
+//       existingFollowDoc.isDeleted = true;
+//       existingFollowDoc.totalFollowing =
+//         (existingFollowDoc.totalFollowing ?? 1) - 1;
+//       await existingFollowDoc.save();
+
+//       return sendResponse(res, {
+//         success: true,
+//         statusCode: httpStatus.OK,
+//         message: "Successfully unfollowed user",
+//         data: { unfollowedUserId: targetUserId, isFollowing: false },
+//       });
+//     } else if (existing && existingFollowDoc.isDeleted) {
+//       // Re-follow previously unfollowed user
+//       existingFollowDoc.isDeleted = false;
+//       existingFollowDoc.totalFollowing =
+//         (existingFollowDoc.totalFollowing ?? 0) + 1;
+//       await existingFollowDoc.save();
+
+//       return sendResponse(res, {
+//         success: true,
+//         statusCode: httpStatus.OK,
+//         message: "Successfully followed user again",
+//         data: { followedUserId: targetUserId, isFollowing: true },
+//       });
+//     } else {
+//       // Follow a new user
+//       existingFollowDoc.following.push({
+//         id: convertedId,
+//         type: targetUser.role!,
+//       });
+//       existingFollowDoc.totalFollowing =
+//         (existingFollowDoc.totalFollowing ?? 0) + 1;
+//       existingFollowDoc.isDeleted = false;
+//       await existingFollowDoc.save();
+
+//       return sendResponse(res, {
+//         success: true,
+//         statusCode: httpStatus.CREATED,
+//         message: "Successfully followed user",
+//         data: existingFollowDoc,
+//       });
+//     }
+//   }
+
+//   // No follow record yet for this author — create a new one
+//   const newFollow: IFollow = {
+//     authorId,
+//     authorType,
+//     following: [
+//       {
+//         id: convertedId,
+//         type: targetUser.role!,
+//       },
+//     ],
+//     totalFollowing: 1,
+//     isDeleted: false,
+//     createdAt: new Date(),
+//     updatedAt: new Date(),
+//   };
+
+//   const result = await GenericService.insertResources<IFollow>(Follow, newFollow);
+
+//   return sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.CREATED,
+//     message: "Successfully followed user",
+//     data: result,
+//   });
+// });
+
 const createFollow: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError(httpStatus.BAD_REQUEST, "Authenticated user is required", "");
@@ -20,9 +126,6 @@ const createFollow: RequestHandler = catchAsync(async (req, res) => {
 
   const { _id: authorId, role: authorType } = req.user;
   const { id: targetUserId } = req.params;
-
-  console.log("author id:", authorId);
-  console.log("following id:", targetUserId);
 
   if (authorId.toString() === targetUserId.toString()) {
     throw new AppError(httpStatus.BAD_REQUEST, "You cannot follow yourself", "");
@@ -38,203 +141,177 @@ const createFollow: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(httpStatus.NOT_FOUND, "User to follow not found", "");
   }
 
-  // Find follow document for the current user
-  const existingFollowDoc = await Follow.findOne({ authorId, authorType });
+  const followDoc = await Follow.findOne({ authorId });
 
-  if (existingFollowDoc) {
-    // Check if already following this user
-    const existing = existingFollowDoc.following.find(
-      (f) => f.id.toString() === convertedId.toString()
-    );
-
-    if (existing && !existingFollowDoc.isDeleted) {
-      // Already following → Unfollow
-      existingFollowDoc.isDeleted = true;
-      existingFollowDoc.totalFollowing =
-        (existingFollowDoc.totalFollowing ?? 1) - 1;
-      await existingFollowDoc.save();
-
-      return sendResponse(res, {
-        success: true,
-        statusCode: httpStatus.OK,
-        message: "Successfully unfollowed user",
-        data: { unfollowedUserId: targetUserId, isFollowing: false },
-      });
-    } else if (existing && existingFollowDoc.isDeleted) {
-      // Re-follow previously unfollowed user
-      existingFollowDoc.isDeleted = false;
-      existingFollowDoc.totalFollowing =
-        (existingFollowDoc.totalFollowing ?? 0) + 1;
-      await existingFollowDoc.save();
-
-      return sendResponse(res, {
-        success: true,
-        statusCode: httpStatus.OK,
-        message: "Successfully followed user again",
-        data: { followedUserId: targetUserId, isFollowing: true },
-      });
-    } else {
-      // Follow a new user
-      existingFollowDoc.following.push({
-        id: convertedId,
-        type: targetUser.role!,
-      });
-      existingFollowDoc.totalFollowing =
-        (existingFollowDoc.totalFollowing ?? 0) + 1;
-      existingFollowDoc.isDeleted = false;
-      await existingFollowDoc.save();
-
-      return sendResponse(res, {
-        success: true,
-        statusCode: httpStatus.CREATED,
-        message: "Successfully followed user",
-        data: existingFollowDoc,
-      });
+  if (!followDoc) {
+    // First ever follow — create document
+    const result = await Follow.create({
+      authorId,
+      authorType,
+      following: [{ id: convertedId, type: targetUser.role, isDeleted: false }],
+      totalFollowing: 1,
+      isDeleted: false,
+    });
+    if (!result) {
+      throw new AppError(httpStatus.NOT_FOUND, "Error to follow", "");
     }
+    return sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.CREATED,
+      message: "Successfully followed user",
+      data: { followedUserId: targetUserId, isFollowing: true },
+    });
   }
 
-  // No follow record yet for this author — create a new one
-  const newFollow: IFollow = {
-    authorId,
-    authorType,
-    following: [
-      {
-        id: convertedId,
-        type: targetUser.role!,
-      },
-    ],
-    totalFollowing: 1,
-    isDeleted: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  const existingEntry = followDoc.following.find(
+    (f) => f.id.toString() === convertedId.toString()
+  );
 
-  const result = await GenericService.insertResources<IFollow>(Follow, newFollow);
+  if (existingEntry) {
+    // Toggle follow/unfollow on the specific entry
+    existingEntry.isDeleted = !existingEntry.isDeleted;
+    followDoc.totalFollowing = existingEntry.isDeleted
+      ? Math.max((followDoc.totalFollowing ?? 1) - 1, 0)
+      : (followDoc.totalFollowing ?? 0) + 1;
+
+    await followDoc.save();
+
+    const isFollowing = !existingEntry.isDeleted;
+    return sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: isFollowing ? "Successfully followed user" : "Successfully unfollowed user",
+      data: { followedUserId: targetUserId, isFollowing },
+    });
+  }
+
+  // New follow entry — push into existing document
+  followDoc.following.push({ id: convertedId, type: targetUser.role!, isDeleted: false });
+  followDoc.totalFollowing = (followDoc.totalFollowing ?? 0) + 1;
+  await followDoc.save();
 
   return sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
     message: "Successfully followed user",
-    data: result,
+    data: { followedUserId: targetUserId, isFollowing: true },
   });
 });
+// const createFollow2: RequestHandler = catchAsync(async (req, res) => {
+//   if (!req.user) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       "Authenticated user is required",
+//       ""
+//     );
+//   }
+//   const { _id, role } = req.user;
+//   const { id } = req.params;
+//   let result;
+
+//   if (_id.toString() === id.toString()) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       "You cannot follow yourself",
+//       ""
+//     );
+//   }
+
+//   console.log("following id:", id)
+
+//   const findUser = await Admin.findOne({ _id: await idConverter(id) }, { role: 1 });
+
+//   if (!findUser) {
+//     throw new AppError(
+//       httpStatus.NOT_FOUND,
+//       "User to follow not found",
+//       ""
+//     );
+//   }
+
+//   const data: IFollow = {
+//     authorId: _id,
+//     authorType: role,
+//     following: [
+//       {
+//         id: await idConverter(id),
+//         type: findUser.role!,
+//       }
+//     ],
+//     isDeleted: false,
+//     createdAt: new Date(),
+//     updatedAt: new Date(),
+//   }
 
 
-const createFollow2: RequestHandler = catchAsync(async (req, res) => {
-  if (!req.user) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Authenticated user is required",
-      ""
-    );
-  }
-  const { _id, role } = req.user;
-  const { id } = req.params;
-  let result;
+//   const existingFollow = await Follow.find({
+//     authorId: _id,
+//     authorType: role,
+//     isDeleted: false,
 
-  if (_id.toString() === id.toString()) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "You cannot follow yourself",
-      ""
-    );
-  }
+//   })
 
-  console.log("following id:", id)
+//   if (existingFollow.length > 0) {
+//     const targetFollowing = existingFollow[0].following.find(
+//       follow => follow.id.toString() === id.toString()
+//     );
 
-  const findUser = await Admin.findOne({ _id: await idConverter(id) }, { role: 1 });
+//     if (targetFollowing) {
+//       throw new AppError(
+//         httpStatus.BAD_REQUEST,
+//         "You are already following this user",
+//         ""
+//       );
+//     }
 
-  if (!findUser) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "User to follow not found",
-      ""
-    );
-  }
+//     await Follow.updateOne({
+//       authorId: _id,
+//       authorType: role
+//     },
+//       {
+//         $push: {
+//           following: {
+//             id: await idConverter(id),
+//             type: findUser.role!,
+//           }
+//         },
+//         $inc: { totalFollowing: 1 },
+//         updatedAt: new Date(),
+//       }
+//     );
 
-  const data: IFollow = {
-    authorId: _id,
-    authorType: role,
-    following: [
-      {
-        id: await idConverter(id),
-        type: findUser.role!,
-      }
-    ],
-    isDeleted: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }
+//     result = await GenericService.findAllResources<IFollow>(Follow, req.query, [])
 
-
-  const existingFollow = await Follow.find({
-    authorId: _id,
-    authorType: role,
-    isDeleted: false,
-
-  })
-
-  if (existingFollow.length > 0) {
-    const targetFollowing = existingFollow[0].following.find(
-      follow => follow.id.toString() === id.toString()
-    );
-
-    if (targetFollowing) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "You are already following this user",
-        ""
-      );
-    }
-
-    await Follow.updateOne({
-      authorId: _id,
-      authorType: role
-    },
-      {
-        $push: {
-          following: {
-            id: await idConverter(id),
-            type: findUser.role!,
-          }
-        },
-        $inc: { totalFollowing: 1 },
-        updatedAt: new Date(),
-      }
-    );
-
-    result = await GenericService.findAllResources<IFollow>(Follow, req.query, [])
-
-  } else {
-    result = await GenericService.insertResources<IFollow>(
-      Follow,
-      data
-    );
-  }
+//   } else {
+//     result = await GenericService.insertResources<IFollow>(
+//       Follow,
+//       data
+//     );
+//   }
 
 
 
 
 
-  // await NotificationServices.sendNoification({
-  //   ownerId: req.user?._id,
-  //   key: "notification",
-  //   data: {
-  //     id: result.Subsciption?._id.toString(),
-  //     message: `New subsciption added`,
-  //   },
-  //   receiverId: [req.user?._id],
-  // });
+//   // await NotificationServices.sendNoification({
+//   //   ownerId: req.user?._id,
+//   //   key: "notification",
+//   //   data: {
+//   //     id: result.Subsciption?._id.toString(),
+//   //     message: `New subsciption added`,
+//   //   },
+//   //   receiverId: [req.user?._id],
+//   // });
 
 
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.CREATED,
-    message: "successfully add to Follow",
-    data: result,
-  });
-});
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.CREATED,
+//     message: "successfully add to Follow",
+//     data: result,
+//   });
+// });
 
 const getFollow: RequestHandler = catchAsync(async (req, res) => {
   const { FollowId } = req.body.data;
@@ -365,7 +442,7 @@ const deleteFollow: RequestHandler = catchAsync(async (req, res) => {
 
 const FollowController = {
   createFollow,
-  createFollow2,
+  // createFollow2,
   getFollow,
   getAllFollow,
   updateFollow,

@@ -103,7 +103,7 @@ const scanningServices = async (scan: string[]) => {
     });
 
     const url = new URL(config.scanning_url);
-
+console.log("🔥 ACTUAL SCANNING URL:", config.scanning_url);
 
     console.log("🚀 Sending file to scanning service...");
 
