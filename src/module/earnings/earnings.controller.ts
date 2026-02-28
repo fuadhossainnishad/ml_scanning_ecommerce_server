@@ -352,10 +352,18 @@ const getEarningsSummary: RequestHandler = catchAsync(async (req, res) => {
 
     const earning = await Earning.findOne({ brandId: req.user._id }).lean();
 
+    const createdAt = earning?.createdAt as Date | undefined;
     const now = new Date();
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const breakdown = earning?.monthlyBreakdown as Record<string, number> | undefined;
-    const monthlyEarning = breakdown?.[currentMonthKey] || 0;
+
+    let monthlyEarning = 0;
+    if (earning?.totalEarnings && createdAt) {
+        const monthsDiff =
+            (now.getFullYear() - createdAt.getFullYear()) * 12 +
+            (now.getMonth() - createdAt.getMonth()) + 1; // +1 to include current month
+
+        const activeMonths = Math.max(monthsDiff, 1); // never divide by 0
+        monthlyEarning = Math.round((earning.totalEarnings / activeMonths) * 100) / 100;
+    }
 
     sendResponse(res, {
         success: true,
