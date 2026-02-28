@@ -11,6 +11,8 @@ import Order from "../order/order.model";
 import { OrderStatus } from "../order/order.interface";
 import { StripeConnectService } from "../stripe/stripeConnect.service";
 import { WithdrawStatus } from "./withdraw.interface";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 // Step 1: Initiate onboarding
 const initiateOnboarding: RequestHandler = catchAsync(async (req, res) => {
@@ -222,7 +224,20 @@ const instantWithdraw: RequestHandler = catchAsync(async (req, res) => {
         });
 
         console.log(`✅ Withdrawal: $${amount} transferred to brand ${req.user._id}`);
-
+        await NotificationService.sendNotification({
+            ownerId: req.user._id,
+            receiverId: [req.user._id],
+            type: NotificationType.WITHDRAWAL_SUCCESS,
+            title: 'Withdraw created',
+            body: `You have withdawed successfully`,
+            data: {
+                userId: req.user._id.toString(),
+                role: req.user.role,
+                action: 'created',
+                time: new Date().toISOString()
+            },
+            notifyAdmin: true
+        });
         sendResponse(res, {
             success: true,
             statusCode: httpStatus.OK,

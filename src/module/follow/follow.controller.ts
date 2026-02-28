@@ -5,7 +5,6 @@ import AppError from "../../app/error/AppError";
 import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
-import NotificationServices from "../notification/notification2.service";
 import Admin from "../admin/admin.model";
 import { IFollow } from "./follow.interface";
 import Follow from "./follow.model";
@@ -420,15 +419,15 @@ const deleteFollow: RequestHandler = catchAsync(async (req, res) => {
     ownerId: req.user._id,
     receiverId: [req.user._id],
     type: NotificationType.SYSTEM,
-    title: '👋 Welcome Back!',
-    body: `You logged in successfully`,
+    title: 'Follow deleted',
+    body: `You delete follow successfully`,
     data: {
       userId: req.user._id.toString(),
       role: req.user.role,
       action: 'follow',
       loginTime: new Date().toISOString()
     },
-    notifyAdmin: false // Don't notify admin for logins
+    notifyAdmin: false
   });
 
   sendResponse(res, {

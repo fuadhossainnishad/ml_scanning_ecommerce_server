@@ -18,6 +18,8 @@ import config from "../../app/config";
 import StripeUtils from "../../utility/stripe.utils";
 import { Types } from "mongoose";
 import Reward from "../reward/reward.model";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 const paymentWithSaveCard: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
@@ -179,6 +181,20 @@ const paymentIntent: RequestHandler = catchAsync(async (req, res) => {
     console.log("customerId:", customerId)
     console.log("publishableKey:", config.stripe.publishKey)
 
+    await NotificationService.sendNotification({
+        ownerId: req.user._id,
+        receiverId: [req.user._id],
+        type: NotificationType.SYSTEM,
+        title: 'Please, ensure the payment',
+        body: `You are one way before payment`,
+        data: {
+            userId: req.user._id.toString(),
+            role: req.user.role,
+            action: 'created',
+            time: new Date().toISOString()
+        },
+        notifyAdmin: true
+    });
 
     sendResponse(res, {
         success: true,
@@ -319,6 +335,21 @@ const webhooks: RequestHandler = async (req, res) => {
         }
 
         console.log("✅ Webhook processing completed");
+
+        await NotificationService.sendNotification({
+            ownerId: await idConverter(metadata.userId),
+            receiverId: [await idConverter(metadata.userId)],
+            type: NotificationType.ORDER_PLACED,
+            title: 'Order placed',
+            body: `You have placed new order successfully`,
+            data: {
+                userId: metadata.userId,
+                role: 'User',
+                action: 'created',
+                time: new Date().toISOString()
+            },
+            notifyAdmin: true
+        });
 
         return res.status(200).json({
             received: true,

@@ -10,6 +10,8 @@ import sendResponse from "../../utility/sendResponse";
 import { IWithdraw, WithdrawStatus } from "./transaction.interface";
 import Withdraw from "./transaction.model";
 import stripe from "../../app/config/stripe.config";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 const CreateWithdraw: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user || req.user.role !== "Brand") {
@@ -111,7 +113,20 @@ const CreateWithdraw: RequestHandler = catchAsync(async (req, res) => {
     console.log("withdrawData:", withdrawData)
 
     const result = await GenericService.insertResources<IWithdraw>(Withdraw, withdrawData);
-
+    await NotificationService.sendNotification({
+        ownerId: _id,
+        receiverId: [_id],
+        type: NotificationType.SYSTEM,
+        title: 'Transacion created',
+        body: `You have a transaction`,
+        data: {
+            userId: req.user._id.toString(),
+            role: req.user.role,
+            action: 'created',
+            time: new Date().toISOString()
+        },
+        notifyAdmin: true
+    });
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.OK,

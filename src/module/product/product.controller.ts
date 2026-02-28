@@ -5,7 +5,6 @@ import AppError from "../../app/error/AppError";
 import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
-import NotificationServices from "../notification/notification2.service";
 import StripeServices from "../stripe/stripe.service";
 import { IProduct } from "./product.interface";
 import Product from "./product.model";
@@ -70,15 +69,15 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
     ownerId: req.user._id,
     receiverId: [req.user._id],
     type: NotificationType.SYSTEM,
-    title: '👋 Welcome Back!',
-    body: `You logged in successfully`,
+    title: 'Product created',
+    body: `You have uploaded new product successfully`,
     data: {
       userId: req.user._id.toString(),
       role: req.user.role,
-      action: 'product',
-      loginTime: new Date().toISOString()
+      action: 'created',
+      time: new Date().toISOString()
     },
-    notifyAdmin: false // Don't notify admin for logins
+    notifyAdmin: true
   });
 
 
@@ -150,15 +149,20 @@ const updateProduct: RequestHandler = catchAsync(async (req, res) => {
     req.body.data
   );
 
-  // await NotificationServices.sendNoification({
-  //   ownerId: req.user?._id,
-  //   key: "notification",
-  //   data: {
-  //     id: result.Product?._id.toString(),
-  //     message: `An Product updated`,
-  //   },
-  //   receiverId: [req.user?._id],
-  // });
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: 'Product updated',
+    body: `You have update product successfully`,
+    data: {
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'updated',
+      time: new Date().toISOString()
+    },
+    notifyAdmin: true
+  });
 
   sendResponse(res, {
     success: true,
@@ -192,15 +196,15 @@ const deleteProduct: RequestHandler = catchAsync(async (req, res) => {
     ownerId: req.user._id,
     receiverId: [req.user._id],
     type: NotificationType.SYSTEM,
-    title: '👋 Welcome Back!',
-    body: `You logged in successfully`,
+    title: 'Product deleted',
+    body: `You have deleted product successfully`,
     data: {
       userId: req.user._id.toString(),
       role: req.user.role,
-      action: 'product',
-      loginTime: new Date().toISOString()
+      action: 'deleted',
+      time: new Date().toISOString()
     },
-    notifyAdmin: false // Don't notify admin for logins
+    notifyAdmin: true
   });
 
   sendResponse(res, {

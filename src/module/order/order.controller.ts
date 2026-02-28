@@ -11,6 +11,8 @@ import OrderServices from "./order.services";
 import { Types } from "mongoose";
 import Earning from "../earnings/earnings.model";
 import Reward from "../reward/reward.model";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 const getOrders: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
@@ -134,6 +136,21 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
         );
         next()
     }
+
+    await NotificationService.sendNotification({
+        ownerId: req.user._id,
+        receiverId: [req.user._id],
+        type: NotificationType.SYSTEM,
+        title: 'Update order status',
+        body: `You have updated order status successfully`,
+        data: {
+            userId: req.user._id.toString(),
+            role: req.user.role,
+            action: 'updated',
+            time: new Date().toISOString()
+        },
+        notifyAdmin: true
+    });
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,

@@ -5,7 +5,6 @@ import AppError from "../../app/error/AppError";
 import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
-import NotificationServices from "../notification/notification2.service";
 import { IPost } from "./post.interface";
 import Post from "./post.model";
 import PostServices from "./post.services";
@@ -41,15 +40,20 @@ const createPost: RequestHandler = catchAsync(async (req, res) => {
     req.body?.data
   );
 
-  // await NotificationServices.sendNoification({
-  //   ownerId: req.user?._id,
-  //   key: "notification",
-  //   data: {
-  //     id: result.Subsciption?._id.toString(),
-  //     message: `New subsciption added`,
-  //   },
-  //   receiverId: [req.user?._id],
-  // });
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: 'Post created',
+    body: `You have uploaded new post successfully`,
+    data: {
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'created',
+      time: new Date().toISOString()
+    },
+    notifyAdmin: true
+  });
 
 
 
@@ -123,15 +127,20 @@ const updatePost: RequestHandler = catchAsync(async (req, res) => {
     req.body.data
   );
 
-  // await NotificationServices.sendNoification({
-  //   ownerId: req.user?._id,
-  //   key: "notification",
-  //   data: {
-  //     id: result.Post?._id.toString(),
-  //     message: `An Post updated`,
-  //   },
-  //   receiverId: [req.user?._id],
-  // });
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: 'post updated',
+    body: `You have updated post successfully`,
+    data: {
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'updated',
+      time: new Date().toISOString()
+    },
+    notifyAdmin: true
+  });
 
   sendResponse(res, {
     success: true,
@@ -163,15 +172,15 @@ const deletePost: RequestHandler = catchAsync(async (req, res) => {
     ownerId: req.user._id,
     receiverId: [req.user._id],
     type: NotificationType.SYSTEM,
-    title: '👋 Welcome Back!',
-    body: `You logged in successfully`,
+    title: 'post deleted',
+    body: `You have deleted post successfully`,
     data: {
       userId: req.user._id.toString(),
       role: req.user.role,
-      action: 'login',
-      loginTime: new Date().toISOString()
+      action: 'deletd',
+      time: new Date().toISOString()
     },
-    notifyAdmin: false // Don't notify admin for logins
+    notifyAdmin: true
   });
 
   sendResponse(res, {

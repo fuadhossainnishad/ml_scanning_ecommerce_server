@@ -9,6 +9,8 @@ import { RedeemStatus } from "./reward.interface";
 import { StripeConnectService } from "../stripe/stripeConnect.service";
 import config from "../../app/config";
 import Redemption from "./redemption.model";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 // Step 1: Initiate Stripe Connect onboarding for user
 const initiateOnboarding: RequestHandler = catchAsync(async (req, res) => {
@@ -237,6 +239,21 @@ const redeemRewards: RequestHandler = catchAsync(async (req, res) => {
         });
 
         console.log(`✅ Redemption successful: ${pointsToRedeem} points → $${cashAmount}`);
+
+        await NotificationService.sendNotification({
+            ownerId: req.user._id,
+            receiverId: [req.user._id],
+            type: NotificationType.REWARD_REDEEMED,
+            title: 'Reward redeemed',
+            body: `You have redeemed reward successfully`,
+            data: {
+                userId: req.user._id.toString(),
+                role: req.user.role,
+                action: 'created',
+                time: new Date().toISOString()
+            },
+            notifyAdmin: true
+        });
 
         sendResponse(res, {
             success: true,

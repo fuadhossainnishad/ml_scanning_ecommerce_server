@@ -8,6 +8,8 @@ import Order from "../order/order.model";
 import sendResponse from "../../utility/sendResponse";
 import { PipelineStage } from "mongoose";
 import StripeServices from "../stripe/stripe.service";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 
 interface MonthlyEarnings {
@@ -67,6 +69,20 @@ const insertEarning: RequestHandler = catchAsync(async (req, res, next: NextFunc
 
     console.log(`Added $${deliveredAmount} to brand ${brandId} earnings. New total: $${updatedEarnings.totalEarnings}`);
     console.log("updatedEarnings", updatedEarnings);
+      await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.ORDER_CONFIRMED,
+    title: 'Earned created',
+    body: `You have earned delivered product price successfully`,
+    data: {
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'created',
+      time: new Date().toISOString()
+    },
+    notifyAdmin: true
+  });
     next()
 });
 

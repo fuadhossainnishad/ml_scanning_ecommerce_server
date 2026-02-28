@@ -32,15 +32,20 @@ const createComments: RequestHandler = catchAsync(async (req, res) => {
     req.body?.data
   );
 
-  // await NotificationServices.sendNoification({
-  //   ownerId: req.user?._id,
-  //   key: "notification",
-  //   data: {
-  //     id: result.Subsciption?._id.toString(),
-  //     message: `New subsciption added`,
-  //   },
-  //   receiverId: [req.user?._id],
-  // });
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: 'Comment created',
+    body: `You have uploaded new comment successfully`,
+    data: {
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'created',
+      time: new Date().toISOString()
+    },
+    notifyAdmin: true
+  });
 
 
 
@@ -149,15 +154,15 @@ const deleteComments: RequestHandler = catchAsync(async (req, res) => {
     ownerId: req.user._id,
     receiverId: [req.user._id],
     type: NotificationType.SYSTEM,
-    title: '👋 Welcome Back!',
-    body: `You logged in successfully`,
+    title: 'Comment deleted',
+    body: `You have deleted comment successfully`,
     data: {
       userId: req.user._id.toString(),
       role: req.user.role,
       action: 'comment deleted',
       loginTime: new Date().toISOString()
     },
-    notifyAdmin: false // Don't notify admin for logins
+    notifyAdmin: false
   });
 
   sendResponse(res, {

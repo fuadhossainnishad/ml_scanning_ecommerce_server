@@ -10,6 +10,8 @@ import { idConverter } from "../../utility/idConverter";
 import QueryBuilder from "../../app/builder/QueryBuilder";
 import CartServices from "./cart.services";
 import Product from "../product/product.model";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
 
 const uploadCart: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
@@ -139,6 +141,20 @@ const uploadCart: RequestHandler = catchAsync(async (req, res) => {
     result = { meta, cart: resources[0] || null };
   }
 
+    await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [req.user._id],
+    type: NotificationType.SYSTEM,
+    title: 'Cart created',
+    body: `You have uploaded new product in cart successfully`,
+    data: {
+      userId: req.user._id.toString(),
+      role: req.user.role,
+      action: 'created',
+      time: new Date().toISOString()
+    },
+    notifyAdmin: true
+  });
 
   sendResponse(res, {
     success: true,
