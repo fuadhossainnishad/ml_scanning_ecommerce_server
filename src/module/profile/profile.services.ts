@@ -1,37 +1,30 @@
-import { Request } from "express";
 import { Types } from "mongoose";
-import httpStatus from "http-status";
 import AppError from "../../app/error/AppError";
-import Admin from "../admin/admin.model";
-import { idConverter } from "../../utility/idConverter";
+import httpStatus from 'http-status';
 import { getRoleModels } from "../../utility/role.utils";
+import { idConverter } from "../../utility/idConverter";
+import Admin from "../admin/admin.model";
 import { TRole } from "../../types/express";
+import { Request } from "express";
 
 const getProfileService = async (req: Request) => {
-    const { _id: currentUserId, role: currentUserRole } = req.user;
+    const { _id: currentUserId, role: currentUserRole } = req.user
 
     let userId: Types.ObjectId;
     let userRole: TRole;
 
-
     if (!req.params.id) {
         userId = currentUserId;
         userRole = currentUserRole;
-        console.log("profile id:", userId)
-
     } else {
         userId = await idConverter(req.params.id);
         const findExist = await Admin.findById(userId);
-
-        console.log("profile id:", userId)
 
         if (!findExist) {
             throw new AppError(httpStatus.NOT_FOUND, "User/Brand not found");
         }
         userRole = findExist.role;
     }
-
-    console.log("final profile id:", userId)
 
     const QueryModel = getRoleModels(userRole);
 
@@ -43,6 +36,7 @@ const getProfileService = async (req: Request) => {
             },
         },
 
+        // ─── POST STATS ───────────────────────────────────────────────
         {
             $lookup: {
                 from: "posts",
@@ -89,34 +83,27 @@ const getProfileService = async (req: Request) => {
         },
         {
             $addFields: {
-                totalPosts: {
-                    $ifNull: [{ $arrayElemAt: ["$postStats.totalPosts", 0] }, 0],
-                },
-                totalReacts: {
-                    $ifNull: [{ $arrayElemAt: ["$postStats.totalReacts", 0] }, 0],
-                },
+                totalPosts: { $ifNull: [{ $arrayElemAt: ["$postStats.totalPosts", 0] }, 0] },
+                totalReacts: { $ifNull: [{ $arrayElemAt: ["$postStats.totalReacts", 0] }, 0] },
             },
         },
-        {
-            $project: {
-                postStats: 0,
-            },
-        },
+        { $project: { postStats: 0 } },
 
-
+        // ─── TOTAL FOLLOWERS ──────────────────────────────────────────
+        // Count how many people have this user in their following array (isDeleted: false)
         {
             $lookup: {
                 from: "follows",
-                let: { id: "$_id", type: "$role" },
+                let: { targetId: "$_id", targetType: "$role" },
                 pipeline: [
-                    { $match: { isDeleted: false } },
                     { $unwind: "$following" },
                     {
                         $match: {
                             $expr: {
                                 $and: [
-                                    { $eq: ["$following.id", "$$id"] },
-                                    { $eq: ["$following.type", "$$type"] },
+                                    { $eq: ["$following.id", "$$targetId"] },
+                                    { $eq: ["$following.type", "$$targetType"] },
+                                    { $eq: ["$following.isDeleted", false] }, // ← only active follows
                                 ],
                             },
                         },
@@ -130,25 +117,34 @@ const getProfileService = async (req: Request) => {
                 totalFollowers: { $size: "$followersData" },
             },
         },
-        {
-            $project: {
-                followersData: 0,
-            },
-        },
+        { $project: { followersData: 0 } },
 
+        // ─── TOTAL FOLLOWING ──────────────────────────────────────────
+        // Count active entries in this user's own following array
         {
             $lookup: {
                 from: "follows",
-                let: { id: "$_id", type: "$role" },
+                let: { authorId: "$_id", authorType: "$role" },
                 pipeline: [
-                    { $match: { isDeleted: false } },
                     {
                         $match: {
                             $expr: {
                                 $and: [
-                                    { $eq: ["$authorId", "$$id"] },
-                                    { $eq: ["$authorType", "$$type"] },
+                                    { $eq: ["$authorId", "$$authorId"] },
+                                    { $eq: ["$authorType", "$$authorType"] },
                                 ],
+                            },
+                        },
+                    },
+                    {
+                        $project: {
+                            totalFollowing: {
+                                $size: {
+                                    $filter: {
+                                        input: "$following",
+                                        cond: { $eq: ["$$this.isDeleted", false] }, // ← only active
+                                    },
+                                },
                             },
                         },
                     },
@@ -163,12 +159,10 @@ const getProfileService = async (req: Request) => {
                 },
             },
         },
-        {
-            $project: {
-                followingData: 0,
-            },
-        },
+        { $project: { followingData: 0 } },
 
+        // ─── IS FOLLOWING ─────────────────────────────────────────────
+        // Check if current user actively follows this profile
         {
             $lookup: {
                 from: "follows",
@@ -178,15 +172,19 @@ const getProfileService = async (req: Request) => {
                     targetRole: "$role",
                 },
                 pipeline: [
-                    { $match: { isDeleted: false } },
+                    {
+                        $match: {
+                            $expr: { $eq: ["$authorId", "$$meId"] },
+                        },
+                    },
                     { $unwind: "$following" },
                     {
                         $match: {
                             $expr: {
                                 $and: [
-                                    { $eq: ["$authorId", "$$meId"] },
                                     { $eq: ["$following.id", "$$targetId"] },
                                     { $eq: ["$following.type", "$$targetRole"] },
+                                    { $eq: ["$following.isDeleted", false] }, // ← only active
                                 ],
                             },
                         },
@@ -207,11 +205,7 @@ const getProfileService = async (req: Request) => {
                 },
             },
         },
-        {
-            $project: {
-                isFollowingData: 0,
-            },
-        },
+        { $project: { isFollowingData: 0 } },
     ]);
 
     if (!profileData || profileData.length === 0) {
@@ -221,8 +215,8 @@ const getProfileService = async (req: Request) => {
     return profileData[0];
 };
 
-const ProfileServices = {
-    getProfileService,
-};
+const ProfileService = {
+    getProfileService
+}
 
-export default ProfileServices;
+export default ProfileService
