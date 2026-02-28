@@ -85,13 +85,48 @@ const scanning: RequestHandler = catchAsync(async (req, res) => {
 
     console.log("🟢 Extracted product IDs:", productIds);
 
-    // Query MongoDB for matching products
-    const matchedProducts = await Product.find({
-        _id: { $in: productIds },
-        isDeleted: { $ne: true },
-    }).lean();
+    // // Query MongoDB for matching products
+    // const matchedProducts = await Product.find({
+    //     _id: { $in: productIds },
+    //     isDeleted: { $ne: true },
+    // }).lean();
 
-    console.log("matchedProducts:", matchedProducts);
+    // console.log("matchedProducts:", matchedProducts);
+
+    // return sendResponse(res, {
+    //     success: true,
+    //     statusCode: httpStatus.OK,
+    //     message: "Successfully found matching products",
+    //     data: matchedProducts,
+    // });
+
+    const matchedProducts = await Product.aggregate([
+        {
+            $match: {
+                _id: { $in: productIds },
+                isDeleted: { $ne: true },
+            },
+        },
+        {
+            $lookup: {
+                from: "Admin",
+                localField: "brandId",
+                foreignField: "_id",
+                pipeline: [
+                    { $project: { _id: 0, brandName: 1 } },
+                ],
+                as: "brandData",
+            },
+        },
+        {
+            $addFields: {
+                brandName: { $ifNull: [{ $arrayElemAt: ["$brandData.brandName", 0] }, null] },
+            },
+        },
+        { $unset: "brandData" },
+    ]);
+
+
 
     return sendResponse(res, {
         success: true,
