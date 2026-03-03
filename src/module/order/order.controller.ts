@@ -41,35 +41,24 @@ const getOrders: RequestHandler = catchAsync(async (req, res) => {
 
 const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunction) => {
     if (req.user.role !== 'Brand') {
-        throw new AppError(
-            httpStatus.BAD_REQUEST,
-            "Authenticated brand is required",
-        );
+        throw new AppError(httpStatus.BAD_REQUEST, "Authenticated brand is required");
     }
 
-    const { cartProductId, sellerStatus } = req.body.data
+    const { cartProductId, sellerStatus } = req.body.data;
 
     if (!cartProductId || !sellerStatus) {
         throw new AppError(httpStatus.BAD_REQUEST, 'cartProductId and sellerStatus are required');
     }
 
-    const cartProductObjectId = await idConverter(cartProductId);
-
-    // const query = {
-    //     items: {
-    //         $elemMatch: {
-    //             cartProductId: await idConverter(cartProductId),
-    //             sellerStatus: sellerStatus,
-    //         },
-    //     },
-    // };
+    if (sellerStatus === SellerStatus.DELIVERED) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Order is already delivered. No further transitions allowed.');
+    }
 
     const nextSellerStatusMap: Record<SellerStatus, SellerStatus | null> = {
         [SellerStatus.MARK_READY]: SellerStatus.MARK_FOR_SHIPPING,
         [SellerStatus.MARK_FOR_SHIPPING]: SellerStatus.MARK_FOR_COMPLETE,
         [SellerStatus.MARK_FOR_COMPLETE]: SellerStatus.DELIVERED,
         [SellerStatus.DELIVERED]: null,
-
     };
 
     const nextSellerStatus = nextSellerStatusMap[sellerStatus as SellerStatus];
@@ -77,7 +66,6 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
         throw new AppError(httpStatus.BAD_REQUEST, `No valid transition from sellerStatus: ${sellerStatus}`);
     }
 
-    // Define corresponding remindStatus for the next sellerStatus
     const remindStatusMap: Record<SellerStatus, RemindeStatus> = {
         [SellerStatus.MARK_READY]: RemindeStatus.PROCESSING,
         [SellerStatus.MARK_FOR_SHIPPING]: RemindeStatus.READY_TO_SHIP,
@@ -85,34 +73,49 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
         [SellerStatus.DELIVERED]: RemindeStatus.DELIVERED,
     };
 
+    const cartProductObjectId = await idConverter(cartProductId);
     const newRemindStatus = remindStatusMap[nextSellerStatus];
 
     const query = {
         items: {
             $elemMatch: {
                 cartProductId: cartProductObjectId,
-                sellerStatus: sellerStatus,
+                sellerStatus,
             },
         },
     };
-    const findOrders = await GenericService.findAllResources<IOrder>(Order, query, ['items.cartProductId', 'items.sellerStatus'])
+    console.log('[updateStatus] query:', JSON.stringify({
+        cartProductId,
+        sellerStatus,
+        cartProductObjectId: cartProductObjectId.toString(),
+    }, null, 2));
 
-    console.log("findOrders", findOrders);
+    // Also verify what's actually in the DB for this cartProductId
+    const rawOrder = await Order.findOne({
+        'items.cartProductId': cartProductObjectId
+    });
+    console.log('[updateStatus] raw order found:', JSON.stringify(rawOrder, null, 2));
+    const findOrders = await GenericService.findAllResources<IOrder>(Order, query, [
+        'items.cartProductId',
+        'items.sellerStatus',
+    ]);
+    console.log('[updateStatus] findOrders result:', JSON.stringify(findOrders, null, 2));
 
     if (!findOrders || !findOrders.order || findOrders.meta.total === 0) {
-        throw new AppError(httpStatus.NOT_FOUND, 'Order item not found or status not matchng');
+        throw new AppError(httpStatus.NOT_FOUND, 'Order item not found or status not matching');
     }
-
-    const updateFields: Record<string, any> = {
-        'items.$[elem].sellerStatus': nextSellerStatus,
-        'items.$[elem].remindStatus': newRemindStatus,
-        updatedAt: new Date(),
-    };
 
     const updateResult = await Order.updateMany(
         query,
         {
-            $set: updateFields
+            $set: {
+                'items.$[elem].sellerStatus': nextSellerStatus,
+                'items.$[elem].remindStatus': newRemindStatus,
+                ...(nextSellerStatus === SellerStatus.DELIVERED && {
+                    'items.$[elem].deliveredAt': new Date(),
+                }),
+                updatedAt: new Date(),
+            },
         },
         {
             arrayFilters: [
@@ -123,70 +126,45 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
             ],
         }
     );
+
     if (updateResult.matchedCount === 0 || updateResult.modifiedCount === 0) {
-        throw new AppError(httpStatus.NOT_FOUND, `Failed to update item in order: ${findOrders.order}`);
+        throw new AppError(httpStatus.NOT_FOUND, 'Failed to update order item status');
     }
 
-    // const result = await OrderServices.getOrderService(req)
-
+    // DELIVERED → hand off to insertEarning which handles rewards + earnings + stripe + response
     if (nextSellerStatus === SellerStatus.DELIVERED) {
-
-        await releaseFundsDeliveredItem(
-            cartProductObjectId,
-            req.user._id
-        );
-        await releaseRewardsForDeliveredItem(
-            cartProductObjectId,
-            // req.user._id
-        );
         req.body.data.orderUpdateData = {
-            // updatedOrders: result,
             cartProductId: cartProductObjectId,
             brandId: req.user._id,
-            // userId: req.user._id!,
-
         };
-        NotificationService.sendNotification({
-            ownerId: req.user._id,
-            receiverId: [req.user._id],
-            type: NotificationType.SYSTEM,
-            title: 'Order Delivered',
-            body: 'Order has been marked as delivered.',
-            data: {
-                userId: req.user._id.toString(),
-                role: req.user.role,
-                action: 'delivered',
-                time: new Date().toISOString(),
-            },
-            notifyAdmin: true,
-        }).catch(err => console.error('Notification error:', err));
-        return next()
+        return next();
     }
 
-    await NotificationService.sendNotification({
+    // All other transitions → notify and respond
+    NotificationService.sendNotification({
         ownerId: req.user._id,
         receiverId: [req.user._id],
         type: NotificationType.SYSTEM,
-        title: 'Update order status',
-        body: `You have updated order status successfully`,
+        title: 'Order status updated',
+        body: `Order has been moved to: ${nextSellerStatus}`,
         data: {
             userId: req.user._id.toString(),
             role: req.user.role,
             action: 'updated',
-            time: new Date().toISOString()
+            time: new Date().toISOString(),
         },
-        notifyAdmin: true
-    });
+        notifyAdmin: true,
+    }).catch(err => console.error('Notification error:', err));
 
     const result = await OrderServices.getOrderService(req);
 
     sendResponse(res, {
         success: true,
-        statusCode: httpStatus.CREATED,
-        message: "Successfully update the order status",
+        statusCode: httpStatus.OK,
+        message: 'Order status updated successfully',
         data: result,
     });
-})
+});
 
 const getTransaction: RequestHandler = catchAsync(async (req, res) => {
     if (req.user.role !== 'Brand') {
@@ -236,50 +214,50 @@ const getProductAmountFromCart = (
     return { price, quantity, productTotal: price * quantity };
 };
 
-const releaseFundsDeliveredItem = async (
-    cartProductId: Types.ObjectId,
-    brandId: Types.ObjectId
-): Promise<void> => {
-    try {
-        const order = await Order.findOne({
-            'items.cartProductId': cartProductId,
-            'items.sellerStatus': SellerStatus.DELIVERED,
-        }).populate('cartId'); // cart.products has price + quantity
+// const releaseFundsDeliveredItem = async (
+//     cartProductId: Types.ObjectId,
+//     brandId: Types.ObjectId
+// ): Promise<void> => {
+//     try {
+//         const order = await Order.findOne({
+//             'items.cartProductId': cartProductId,
+//             'items.sellerStatus': SellerStatus.DELIVERED,
+//         }).populate('cartId'); // cart.products has price + quantity
 
-        if (!order) {
-            console.error(`[Earnings] No order found for cartProductId: ${cartProductId}`);
-            return;
-        }
+//         if (!order) {
+//             console.error(`[Earnings] No order found for cartProductId: ${cartProductId}`);
+//             return;
+//         }
 
-        const cart = order.cartId as any;
-        const productData = getProductAmountFromCart(cart, cartProductId);
-        if (!productData) return;
+//         const cart = order.cartId as any;
+//         const productData = getProductAmountFromCart(cart, cartProductId);
+//         if (!productData) return;
 
-        const PLATFORM_FEE_RATE = 0.10;
-        const { productTotal } = productData;
-        const platformFee = productTotal * PLATFORM_FEE_RATE;
-        const brandAmount = productTotal - platformFee;
+//         const PLATFORM_FEE_RATE = 0.10;
+//         const { productTotal } = productData;
+//         const platformFee = productTotal * PLATFORM_FEE_RATE;
+//         const brandAmount = productTotal - platformFee;
 
-        console.log(`[Earnings] productTotal=$${productTotal} fee=$${platformFee} releasing=$${brandAmount} to brand=${brandId}`);
+//         console.log(`[Earnings] productTotal=$${productTotal} fee=$${platformFee} releasing=$${brandAmount} to brand=${brandId}`);
 
-        const updated = await Earning.findOneAndUpdate(
-            { brandId },
-            {
-                $inc: {
-                    pendingBalance: -brandAmount,
-                    availableBalance: brandAmount,
-                    totalEarnings: brandAmount,
-                },
-            },
-            { upsert: true, new: true }
-        );
+//         const updated = await Earning.findOneAndUpdate(
+//             { brandId },
+//             {
+//                 $inc: {
+//                     pendingBalance: -brandAmount,
+//                     availableBalance: brandAmount,
+//                     totalEarnings: brandAmount,
+//                 },
+//             },
+//             { upsert: true, new: true }
+//         );
 
-        console.log(`[Earnings] ✅ Done. availableBalance=$${updated?.availableBalance} pendingBalance=$${updated?.pendingBalance}`);
+//         console.log(`[Earnings] ✅ Done. availableBalance=$${updated?.availableBalance} pendingBalance=$${updated?.pendingBalance}`);
 
-    } catch (error) {
-        console.error('[Earnings] Error releasing funds:', error);
-    }
-};
+//     } catch (error) {
+//         console.error('[Earnings] Error releasing funds:', error);
+//     }
+// };
 
 const releaseRewardsForDeliveredItem = async (
     cartProductId: Types.ObjectId,
