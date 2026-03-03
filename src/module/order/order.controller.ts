@@ -52,14 +52,17 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
     if (!cartProductId || !sellerStatus) {
         throw new AppError(httpStatus.BAD_REQUEST, 'cartProductId and sellerStatus are required');
     }
-    const query = {
-        items: {
-            $elemMatch: {
-                cartProductId: await idConverter(cartProductId),
-                sellerStatus: sellerStatus,
-            },
-        },
-    };
+
+    const cartProductObjectId = await idConverter(cartProductId);
+
+    // const query = {
+    //     items: {
+    //         $elemMatch: {
+    //             cartProductId: await idConverter(cartProductId),
+    //             sellerStatus: sellerStatus,
+    //         },
+    //     },
+    // };
 
     const nextSellerStatusMap: Record<SellerStatus, SellerStatus | null> = {
         [SellerStatus.MARK_READY]: SellerStatus.MARK_FOR_SHIPPING,
@@ -84,28 +87,37 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
 
     const newRemindStatus = remindStatusMap[nextSellerStatus];
 
-
+    const query = {
+        items: {
+            $elemMatch: {
+                cartProductId: cartProductObjectId,
+                sellerStatus: sellerStatus,
+            },
+        },
+    };
     const findOrders = await GenericService.findAllResources<IOrder>(Order, query, ['items.cartProductId', 'items.sellerStatus'])
 
-    console.log(findOrders);
+    console.log("findOrders", findOrders);
 
     if (!findOrders || !findOrders.order || findOrders.meta.total === 0) {
         throw new AppError(httpStatus.NOT_FOUND, 'Order item not found or status not matchng');
     }
 
+    const updateFields: Record<string, any> = {
+        'items.$[elem].sellerStatus': nextSellerStatus,
+        'items.$[elem].remindStatus': newRemindStatus,
+        updatedAt: new Date(),
+    };
+
     const updateResult = await Order.updateMany(
         query,
         {
-            $set: {
-                'items.$[elem].sellerStatus': nextSellerStatus,
-                'items.$[elem].remindStatus': newRemindStatus,
-                updatedAt: new Date(),
-            },
+            $set: updateFields
         },
         {
             arrayFilters: [
                 {
-                    'elem.cartProductId': await idConverter(cartProductId),
+                    'elem.cartProductId': cartProductObjectId,
                     'elem.sellerStatus': sellerStatus,
                 },
             ],
@@ -115,26 +127,40 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
         throw new AppError(httpStatus.NOT_FOUND, `Failed to update item in order: ${findOrders.order}`);
     }
 
-    const result = await OrderServices.getOrderService(req)
-
-
-
+    // const result = await OrderServices.getOrderService(req)
 
     if (nextSellerStatus === SellerStatus.DELIVERED) {
-        req.body.data.orderUpdateData = {
-            updatedOrders: result,
-            cartProductId: await idConverter(cartProductId),
-            userId: req.user._id!,
-        };
+
         await releaseFundsDeliveredItem(
-            await idConverter(cartProductId),
+            cartProductObjectId,
             req.user._id
         );
         await releaseRewardsForDeliveredItem(
-            await idConverter(cartProductId),
-            req.user._id
+            cartProductObjectId,
+            // req.user._id
         );
-        next()
+        req.body.data.orderUpdateData = {
+            // updatedOrders: result,
+            cartProductId: cartProductObjectId,
+            brandId: req.user._id,
+            // userId: req.user._id!,
+
+        };
+        NotificationService.sendNotification({
+            ownerId: req.user._id,
+            receiverId: [req.user._id],
+            type: NotificationType.SYSTEM,
+            title: 'Order Delivered',
+            body: 'Order has been marked as delivered.',
+            data: {
+                userId: req.user._id.toString(),
+                role: req.user.role,
+                action: 'delivered',
+                time: new Date().toISOString(),
+            },
+            notifyAdmin: true,
+        }).catch(err => console.error('Notification error:', err));
+        return next()
     }
 
     await NotificationService.sendNotification({
@@ -151,6 +177,9 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
         },
         notifyAdmin: true
     });
+
+    const result = await OrderServices.getOrderService(req);
+
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.CREATED,
@@ -176,106 +205,111 @@ const getTransaction: RequestHandler = catchAsync(async (req, res) => {
         data: result,
     });
 })
-// Helper function to release funds when item is delivered
-const releaseFundsDeliveredItem = async function releaseFundsForDeliveredItem(
+// Shared helper to get product amount from cart
+const getProductAmountFromCart = (
+    cart: any,
+    cartProductId: Types.ObjectId
+): { price: number; quantity: number; productTotal: number } | null => {
+    if (!cart || !Array.isArray(cart.products)) {
+        console.error('[Order] Cart not populated or has no products array');
+        return null;
+    }
+
+    const cartProduct = cart.products.find(
+        (p: any) => p._id.toString() === cartProductId.toString()
+    );
+
+    if (!cartProduct) {
+        console.error(`[Order] No cart product found matching cartProductId: ${cartProductId}`);
+        console.error(`[Order] Available cart product _ids:`, cart.products.map((p: any) => p._id.toString()));
+        return null;
+    }
+
+    const price = Number(cartProduct.price);
+    const quantity = Number(cartProduct.quantity);
+
+    if (isNaN(price) || isNaN(quantity)) {
+        console.error(`[Order] Invalid price (${cartProduct.price}) or quantity (${cartProduct.quantity}) on cart product`);
+        return null;
+    }
+
+    return { price, quantity, productTotal: price * quantity };
+};
+
+const releaseFundsDeliveredItem = async (
     cartProductId: Types.ObjectId,
     brandId: Types.ObjectId
-) {
+): Promise<void> => {
     try {
-        // Find the order with this cart product
         const order = await Order.findOne({
             'items.cartProductId': cartProductId,
-            'items.sellerStatus': SellerStatus.DELIVERED
-        }).populate({
-            path: 'cartId',
-            populate: {
-                path: 'products.productId'
-            }
-        });
+            'items.sellerStatus': SellerStatus.DELIVERED,
+        }).populate('cartId'); // cart.products has price + quantity
 
         if (!order) {
-            console.error("Order not found for delivered item");
+            console.error(`[Earnings] No order found for cartProductId: ${cartProductId}`);
             return;
         }
 
         const cart = order.cartId as any;
+        const productData = getProductAmountFromCart(cart, cartProductId);
+        if (!productData) return;
+
         const PLATFORM_FEE_RATE = 0.10;
-
-        // Find the specific product in cart
-        const cartProduct = cart.products.find(
-            (p: any) => p._id.toString() === cartProductId.toString()
-        );
-
-        if (!cartProduct) {
-            console.error("Cart product not found");
-            return;
-        }
-
-        // Calculate amount for this specific product
-        const productTotal = cartProduct.price * cartProduct.quantity;
+        const { productTotal } = productData;
         const platformFee = productTotal * PLATFORM_FEE_RATE;
         const brandAmount = productTotal - platformFee;
 
-        console.log(`💰 Releasing $${brandAmount} for brand ${brandId}`);
-        console.log(`   Product total: $${productTotal}`);
-        console.log(`   Platform fee: $${platformFee}`);
+        console.log(`[Earnings] productTotal=$${productTotal} fee=$${platformFee} releasing=$${brandAmount} to brand=${brandId}`);
 
-        // Move from pending to available
         const updated = await Earning.findOneAndUpdate(
             { brandId },
             {
                 $inc: {
                     pendingBalance: -brandAmount,
                     availableBalance: brandAmount,
+                    totalEarnings: brandAmount,
                 },
             },
             { upsert: true, new: true }
         );
 
-        console.log(`✅ Funds released! New available balance: $${updated?.availableBalance}`);
+        console.log(`[Earnings] ✅ Done. availableBalance=$${updated?.availableBalance} pendingBalance=$${updated?.pendingBalance}`);
 
     } catch (error) {
-        console.error("Error releasing funds:", error);
+        console.error('[Earnings] Error releasing funds:', error);
     }
-}
-async function releaseRewardsForDeliveredItem(
+};
+
+const releaseRewardsForDeliveredItem = async (
     cartProductId: Types.ObjectId,
-    userId: Types.ObjectId
-) {
+    // userId: Types.ObjectId
+): Promise<void> => {
     try {
+        // userId here is brandId (req.user._id) — rewards belong to the BUYER
+        // Get the actual buyerId from the order
         const order = await Order.findOne({
             'items.cartProductId': cartProductId,
-            'items.sellerStatus': SellerStatus.DELIVERED
-        }).populate({
-            path: 'cartId',
-            populate: 'products.productId'
-        });
+            'items.sellerStatus': SellerStatus.DELIVERED,
+        }).populate('cartId');
 
         if (!order) {
-            console.error("Order not found for delivered item");
+            console.error(`[Rewards] No order found for cartProductId: ${cartProductId}`);
             return;
         }
 
+        const buyerId = order.userId; // ✅ buyer, not brand
         const cart = order.cartId as any;
+        const productData = getProductAmountFromCart(cart, cartProductId);
+        if (!productData) return;
+
         const REWARD_RATE = 0.10;
+        const rewardAmount = productData.productTotal * REWARD_RATE;
 
-        const cartProduct = cart.products.find(
-            (p: any) => p._id.toString() === cartProductId.toString()
-        );
+        console.log(`[Rewards] Releasing $${rewardAmount} rewards for buyer=${buyerId}`);
 
-        if (!cartProduct) {
-            console.error("Cart product not found");
-            return;
-        }
-
-        const productTotal = cartProduct.price * cartProduct.quantity;
-        const rewardAmount = productTotal * REWARD_RATE;
-
-        console.log(`🎁 Releasing $${rewardAmount} rewards for user ${userId}`);
-
-        // Move from pending to available
         await Reward.findOneAndUpdate(
-            { userId },
+            { userId: buyerId },
             {
                 $inc: {
                     pendingRewards: -rewardAmount,
@@ -285,12 +319,149 @@ async function releaseRewardsForDeliveredItem(
             { upsert: true, new: true }
         );
 
-        console.log(`✅ Rewards released! User can now redeem.`);
+        console.log(`[Rewards] ✅ Done. Buyer ${buyerId} rewards released.`);
 
     } catch (error) {
-        console.error("Error releasing rewards:", error);
+        console.error('[Rewards] Error releasing rewards:', error);
     }
-}
+};
+// Helper function to release funds when item is delivered
+// const releaseFundsDeliveredItem = async function releaseFundsForDeliveredItem(
+//     cartProductId: Types.ObjectId,
+//     brandId: Types.ObjectId
+// ) {
+//     try {
+
+//         console.log("cartProductId:", cartProductId)
+//         console.log("brandId:", brandId)
+
+//         // Find the order with this cart product        
+//         const order = await Order.findOne({
+//             'items.cartProductId': cartProductId,
+//             'items.sellerStatus': SellerStatus.DELIVERED
+//         }).populate({
+//             path: 'cartId',
+//             // populate: {
+//             //     path: 'products.productId'
+//             // }
+//         });
+
+//         if (!order) {
+//             console.error("Order not found for delivered item");
+//             return;
+//         }
+
+//         console.log("releaseFundsDeliveredItem:", order)
+
+//         const cart = order.cartId as any;
+//         if (!cart || !Array.isArray(cart.products)) {
+//             console.error(`[Earnings] Cart not populated or has no products`);
+//             return;
+//         }
+//         const orderItem = order.items.find(
+//             (item: any) => item.cartProductId.toString() === cartProductId.toString()
+//         );
+//         if (!orderItem) {
+//             console.error(`[Earnings] Order item not found for cartProductId: ${cartProductId}`);
+//             return;
+//         }
+//         const PLATFORM_FEE_RATE = 0.10;
+
+//         // Find the specific product in cart
+//         // const cartProduct = cart.products.find(
+//         //     (p: any) => p._id.toString() === cartProductId.toString()
+//         // );
+
+//         // if (!cartProduct) {
+//         //     console.error("Cart product not found");
+//         //     return;
+//         // }
+
+//         // Calculate amount for this specific product
+//         // const productTotal = cartProduct.price * cartProduct.quantity;
+//         const productTotal = (orderItem as any).price * (orderItem as any).quantity;
+//         const platformFee = productTotal * PLATFORM_FEE_RATE;
+//         const brandAmount = productTotal - platformFee;
+
+//         console.log(`[Earnings] Releasing $${brandAmount} for brand ${brandId} (product total: $${productTotal}, fee: $${platformFee})`);
+
+//         console.log(`💰 Releasing $${brandAmount} for brand ${brandId}`);
+//         console.log(`   Product total: $${productTotal}`);
+//         console.log(`   Platform fee: $${platformFee}`);
+
+//         // Move from pending to available
+//         const updated = await Earning.findOneAndUpdate(
+//             { brandId },
+//             {
+//                 $inc: {
+//                     pendingBalance: -brandAmount,
+//                     availableBalance: brandAmount,
+//                     totalEarnings: brandAmount,
+//                 },
+//             },
+//             { upsert: true, new: true }
+//         );
+//         console.log(`✅ Funds released! New available updated: $${updated}`);
+
+//         console.log(`✅ Funds released! New available balance: $${updated?.availableBalance}`);
+
+//     } catch (error) {
+//         console.error("Error releasing funds:", error);
+//     }
+// }
+// async function releaseRewardsForDeliveredItem(
+//     cartProductId: Types.ObjectId,
+//     userId: Types.ObjectId
+// ) {
+//     try {
+//         const order = await Order.findOne({
+//             'items.cartProductId': cartProductId,
+//             'items.sellerStatus': SellerStatus.DELIVERED
+//         }).populate({
+//             path: 'cartId',
+//             populate: 'products.productId'
+//         });
+
+//         if (!order) {
+//             console.error("Order not found for delivered item");
+//             return;
+//         }
+
+//         const cart = order.cartId as any;
+//         const REWARD_RATE = 0.10;
+
+//         const cartProduct = cart.products.find(
+//             (p: any) => p._id.toString() === cartProductId.toString()
+//         );
+
+//         if (!cartProduct) {
+//             console.error("Cart product not found");
+//             return;
+//         }
+
+//         const productTotal = cartProduct.price * cartProduct.quantity;
+//         const rewardAmount = productTotal * REWARD_RATE;
+
+//         console.log(`🎁 Releasing $${rewardAmount} rewards for user ${userId}`);
+
+//         // Move from pending to available
+//         await Reward.findOneAndUpdate(
+//             { userId },
+//             {
+//                 $inc: {
+//                     pendingRewards: -rewardAmount,
+//                     availableRewards: rewardAmount,
+//                 },
+//             },
+//             { upsert: true, new: true }
+//         );
+
+//         console.log(`✅ Rewards released! User can now redeem.`);
+
+//     } catch (error) {
+//         console.error("Error releasing rewards:", error);
+//     }
+// }
 const OrderController = {
     getOrders,
     updateStatus,

@@ -6,10 +6,12 @@ import Earning from "./earnings.model";
 import { SellerStatus } from "../order/order.interface";
 import Order from "../order/order.model";
 import sendResponse from "../../utility/sendResponse";
-import { PipelineStage } from "mongoose";
+import { PipelineStage, Types } from "mongoose";
 import StripeServices from "../stripe/stripe.service";
 import NotificationService from "../notification/notification.service";
 import { NotificationType } from "../notification/notification.interface";
+import Reward from "../reward/reward.model";
+import OrderServices from "../order/order.services";
 
 
 interface MonthlyEarnings {
@@ -17,74 +19,223 @@ interface MonthlyEarnings {
     earnings: number;
 }
 
-const insertEarning: RequestHandler = catchAsync(async (req, res, next: NextFunction) => { // Added 'any' for res to avoid strict typing issues if needed
-
-    if (!req.body.data.orderUpdateData) {
-        console.warn("No orderUpdateData found; skipping earnings update");
+const insertEarning: RequestHandler = catchAsync(async (req, res, next: NextFunction) => {
+    if (!req.body.data?.orderUpdateData) {
+        console.warn('[insertEarning] No orderUpdateData, skipping');
         return next();
     }
 
-    const { stripe_accounts_id } = req.user
-    const { orderUpdateData } = req.body.data;
-    const { updatedOrders, brandId } = orderUpdateData;
+    const { cartProductId, brandId } = req.body.data.orderUpdateData;
 
-    console.log("orderUpdateData:", orderUpdateData);
-
-    if (!updatedOrders || !updatedOrders.data || updatedOrders.data.length === 0) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Invalid order data for earnings update");
+    if (!cartProductId || !brandId) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'cartProductId and brandId are required for earnings update');
     }
 
-    let deliveredAmount = 0
-    for (const item of updatedOrders.data) {
-        deliveredAmount += (item.discountPrice || 0) * (item.quantity || 0);
-    }
-    const totalDeliveredAmount = Math.round(Number(deliveredAmount * 90 / 100))
-    const transfer = await StripeServices.createTransfer(totalDeliveredAmount, 'usd', stripe_accounts_id)
+    const order = await Order.findOne({
+        'items.cartProductId': cartProductId,
+        'items.sellerStatus': SellerStatus.DELIVERED,
+    }).populate({
+        path: 'cartId',
+        populate: {
+            path: 'products.productId', // ✅ populate product to get price
+            model: 'Product',
+        },
+    });
 
+    if (!order) {
+        throw new AppError(httpStatus.NOT_FOUND, '[insertEarning] Order not found for delivered item');
+    }
+
+    const cart = order.cartId as any;
+    if (!cart || !Array.isArray(cart.products)) {
+        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, '[insertEarning] Cart not populated correctly');
+    }
+
+    // cart.products[n]._id === cartProductId (subdoc _id)
+    const cartProduct = cart.products.find(
+        (p: any) => p._id.toString() === cartProductId.toString()
+    );
+
+    if (!cartProduct) {
+        throw new AppError(httpStatus.NOT_FOUND, '[insertEarning] Cart product not found');
+    }
+
+    // price lives on the populated productId document, NOT on cart.products
+    const product = cartProduct.productId as any;
+    if (!product || typeof product !== 'object') {
+        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, '[insertEarning] Product not populated on cart item');
+    }
+
+    const price = Number(product.discountPrice ?? product.price);
+    const quantity = Number(cartProduct.quantity);
+
+    if (isNaN(price) || isNaN(quantity) || price <= 0 || quantity <= 0) {
+        throw new AppError(
+            httpStatus.INTERNAL_SERVER_ERROR,
+            `[insertEarning] Invalid price (${product.price}) or quantity (${cartProduct.quantity})`
+        );
+    }
+
+    const productTotal = price * quantity;
+    const PLATFORM_FEE_RATE = 0.10;
+    const platformFee = productTotal * PLATFORM_FEE_RATE;
+    const brandAmount = Math.round((productTotal - platformFee) * 100) / 100;
+
+    console.log(`[insertEarning] productTotal=$${productTotal} fee=$${platformFee} brandAmount=$${brandAmount}`);
+
+    // Stripe transfer (amount in cents)
+    const { stripe_accounts_id } = req.user;
+    const transferAmountInCents = Math.round(brandAmount * 100);
+
+    const transfer = await StripeServices.createTransfer(transferAmountInCents, 'usd', stripe_accounts_id);
     if (!transfer) {
-        throw new AppError(httpStatus.BAD_REQUEST, "Failed to add order earnings ");
+        throw new AppError(httpStatus.BAD_REQUEST, 'Stripe transfer failed');
     }
 
     const updatedEarnings = await Earning.findOneAndUpdate(
         { brandId },
         {
             $inc: {
-                totalEarnings: deliveredAmount,
-                available: deliveredAmount,
+                pendingBalance: -brandAmount,
+                availableBalance: brandAmount,
+                totalEarnings: brandAmount,
             },
-            $set: {
-                updatedAt: new Date(),
-            },
+            $set: { updatedAt: new Date() },
         },
-        {
-            new: true,
-            upsert: true,
-            runValidators: true,
-        }
+        { new: true, upsert: true, runValidators: true }
     );
 
     if (!updatedEarnings) {
-        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update earnings");
+        throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to update earnings record');
     }
 
-    console.log(`Added $${deliveredAmount} to brand ${brandId} earnings. New total: $${updatedEarnings.totalEarnings}`);
-    console.log("updatedEarnings", updatedEarnings);
-      await NotificationService.sendNotification({
-    ownerId: req.user._id,
-    receiverId: [req.user._id],
-    type: NotificationType.ORDER_CONFIRMED,
-    title: 'Earned created',
-    body: `You have earned delivered product price successfully`,
-    data: {
-      userId: req.user._id.toString(),
-      role: req.user.role,
-      action: 'created',
-      time: new Date().toISOString()
-    },
-    notifyAdmin: true
-  });
-    next()
+    // Release buyer rewards — non-fatal
+    // await releaseRewardsForBuyer(
+    //     order.userId as Types.ObjectId,
+    //     productTotal
+    // );
+
+    console.log(`[insertEarning] ✅ availableBalance=$${updatedEarnings.availableBalance} totalEarnings=$${updatedEarnings.totalEarnings}`);
+
+    await NotificationService.sendNotification({
+        ownerId: req.user._id,
+        receiverId: [req.user._id],
+        type: NotificationType.ORDER_CONFIRMED,
+        title: 'Earnings credited',
+        body: `$${brandAmount} has been credited to your available balance.`,
+        data: {
+            userId: req.user._id.toString(),
+            role: req.user.role,
+            action: 'created',
+            time: new Date().toISOString(),
+        },
+        notifyAdmin: true,
+    });
+
+    const result = await OrderServices.getOrderService(req);
+
+    sendResponse(res, {
+        success: true,
+        statusCode: httpStatus.OK,
+        message: 'Order delivered and earnings updated successfully',
+        data: result,
+    });
 });
+
+// Separate clean helper — rewards for the buyer
+// const releaseRewardsForBuyer = async (
+//     buyerId: Types.ObjectId,
+//     productTotal: number
+// ): Promise<void> => {
+//     try {
+//         const REWARD_RATE = 0.10;
+//         const rewardAmount = Math.round(productTotal * REWARD_RATE * 100) / 100;
+
+//         await Reward.findOneAndUpdate(
+//             { userId: buyerId },
+//             {
+//                 $inc: {
+//                     pendingRewards: -rewardAmount,
+//                     availableRewards: rewardAmount,
+//                 },
+//             },
+//             { upsert: true, new: true }
+//         );
+
+//         console.log(`[Rewards] ✅ $${rewardAmount} released for buyer=${buyerId}`);
+//     } catch (error) {
+//         console.error('[Rewards] Error releasing rewards:', error);
+//     }
+// };
+
+// const insertEarning: RequestHandler = catchAsync(async (req, res, next: NextFunction) => { // Added 'any' for res to avoid strict typing issues if needed
+
+//     if (!req.body.data.orderUpdateData) {
+//         console.warn("No orderUpdateData found; skipping earnings update");
+//         return next();
+//     }
+
+//     const { stripe_accounts_id } = req.user
+//     const { orderUpdateData } = req.body.data;
+//     const { updatedOrders, brandId } = orderUpdateData;
+
+//     console.log("orderUpdateData:", orderUpdateData);
+
+//     if (!updatedOrders || !updatedOrders.data || updatedOrders.data.length === 0) {
+//         throw new AppError(httpStatus.BAD_REQUEST, "Invalid order data for earnings update");
+//     }
+
+//     let deliveredAmount = 0
+//     for (const item of updatedOrders.data) {
+//         deliveredAmount += (item.discountPrice || 0) * (item.quantity || 0);
+//     }
+//     const totalDeliveredAmount = Math.round(Number(deliveredAmount * 90 / 100))
+//     const transfer = await StripeServices.createTransfer(totalDeliveredAmount, 'usd', stripe_accounts_id)
+
+//     if (!transfer) {
+//         throw new AppError(httpStatus.BAD_REQUEST, "Failed to add order earnings ");
+//     }
+
+//     const updatedEarnings = await Earning.findOneAndUpdate(
+//         { brandId },
+//         {
+//             $inc: {
+//                 totalEarnings: deliveredAmount,
+//                 available: deliveredAmount,
+//             },
+//             $set: {
+//                 updatedAt: new Date(),
+//             },
+//         },
+//         {
+//             new: true,
+//             upsert: true,
+//             runValidators: true,
+//         }
+//     );
+
+//     if (!updatedEarnings) {
+//         throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Failed to update earnings");
+//     }
+
+//     console.log(`Added $${deliveredAmount} to brand ${brandId} earnings. New total: $${updatedEarnings.totalEarnings}`);
+//     console.log("updatedEarnings", updatedEarnings);
+//       await NotificationService.sendNotification({
+//     ownerId: req.user._id,
+//     receiverId: [req.user._id],
+//     type: NotificationType.ORDER_CONFIRMED,
+//     title: 'Earned created',
+//     body: `You have earned delivered product price successfully`,
+//     data: {
+//       userId: req.user._id.toString(),
+//       role: req.user.role,
+//       action: 'created',
+//       time: new Date().toISOString()
+//     },
+//     notifyAdmin: true
+//   });
+//     next()
+// });
 
 const getMonthlyEarnings: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user || req.user.role !== "Brand") {
