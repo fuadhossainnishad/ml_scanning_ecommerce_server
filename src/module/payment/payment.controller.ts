@@ -5,13 +5,13 @@ import httpStatus from 'http-status';
 import AppError from "../../app/error/AppError";
 import StripeServices from "../stripe/stripe.service";
 import CartServices from "../cart/cart.services";
-import { IOrder, OrderStatus, PaymentStatus, RemindeStatus, SellerStatus } from "../order/order.interface";
+import { IOrder, OrderItem, OrderStatus, PaymentStatus, RemindeStatus, SellerStatus } from "../order/order.interface";
 import GenericService from "../../utility/genericService.helpers";
 import Order from "../order/order.model";
 import Payment from "./payment.model";
 import { IPayment } from "./payment.interface";
 import { idConverter } from "../../utility/idConverter";
-import { ICart, IProductResponse } from "../cart/cart.interface";
+import { ICart, IProductResponse, IProducts } from "../cart/cart.interface";
 import Cart from "../cart/cart.model";
 import stripe from '../../app/config/stripe.config';
 import config from "../../app/config";
@@ -20,6 +20,7 @@ import { Types } from "mongoose";
 import Reward from "../reward/reward.model";
 import NotificationService from "../notification/notification.service";
 import { NotificationType } from "../notification/notification.interface";
+import Product from "../product/product.model";
 
 const paymentWithSaveCard: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
@@ -260,6 +261,9 @@ const webhooks: RequestHandler = async (req, res) => {
 
         console.log("Processing payment with metadata:", metadata);
 
+        const orderObjectId = await idConverter(metadata.orderId)
+        console.log("✅ orderObjectId:", orderObjectId);
+
         let paymentMethodId;
         if (typeof payment_method === "string") {
             paymentMethodId = payment_method;
@@ -325,6 +329,8 @@ const webhooks: RequestHandler = async (req, res) => {
             } else {
                 console.error("⚠️ Failed to update order");
             }
+            await decrementProductStock(orderObjectId)
+
             await trackUserRewards(
                 await idConverter(metadata.orderId),
                 amount / 100,
@@ -766,12 +772,55 @@ async function trackUserRewards(orderId: Types.ObjectId, paymentAmount: number, 
     }
 }
 
+const decrementProductStock = async (orderId: Types.ObjectId): Promise<void> => {
+    const order = await Order.findById(orderId).lean<IOrder>();
+    if (!order) throw new Error(`Order not found: ${orderId}`);
+    console.log("✅ order:", decrementProductStock);
+
+
+    const cart = await Cart.findById(order.cartId).lean<ICart>();
+    if (!cart) throw new Error(`Cart not found for order: ${orderId}`);
+
+    const cartProductMap = new Map<string, IProducts>(
+        cart.products.map((p: IProducts) => [p._id!.toString(), p])
+    );
+
+    const bulkOps = order.items
+        .map((item: OrderItem) => {
+            const cartProduct = cartProductMap.get(item.cartProductId.toString());
+            if (!cartProduct) return null;
+
+            return {
+                updateOne: {
+                    filter: {
+                        _id: cartProduct.productId,
+                        totalQuantity: { $gte: cartProduct.quantity },
+                    },
+                    update: {
+                        $inc: { totalQuantity: -cartProduct.quantity },
+                    },
+                },
+            };
+        })
+        .filter((op): op is NonNullable<typeof op> => op !== null);
+
+    if (bulkOps.length > 0) {
+        await Product.bulkWrite(bulkOps);
+    }
+
+    await Product.updateMany(
+        { totalQuantity: { $lte: 0 }, inStock: true },
+        { $set: { inStock: false } }
+    );
+};
+
 const PaymentController = {
     paymentWithSaveCard,
     paymentIntent,
     webhooks,
     test,
     payment,
-    trackUserRewards
+    trackUserRewards,
+    decrementProductStock
 }
 export default PaymentController
