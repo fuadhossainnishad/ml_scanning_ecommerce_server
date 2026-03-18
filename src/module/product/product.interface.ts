@@ -33,6 +33,7 @@ export interface IMeasurement {
 
 export interface IProduct {
   brandId: Types.ObjectId
+  brandName: string;
   stripe_product_id: string
   productName: string
   shortDescription: string

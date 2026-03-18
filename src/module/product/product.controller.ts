@@ -39,6 +39,7 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
   req.body.data = {
     ...req.body.data,
     brandId: req.user._id!,
+    brandName: req.user.brandName,
     stripe_product_id: stripeProductId,
     stripe_price_id: stripePriceId,
   }
@@ -119,7 +120,7 @@ const getAllProduct: RequestHandler = catchAsync(async (req, res) => {
   const result = await GenericService.findAllResources<IProduct>(
     Product,
     req.query,
-    ["category", "productName", "shortDescription"]
+    ["category", "productName", "shortDescription", "brandName"]
   );
 
   sendResponse(res, {

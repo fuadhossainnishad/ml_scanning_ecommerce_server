@@ -22,6 +22,7 @@ const ProductSchema = new Schema<IProduct>({
     ref: 'Brand',
     required: true,
   },
+  brandName: { type: String, required: true },
   stripe_product_id: { type: String, required: true },
   productName: { type: String, required: true },
   shortDescription: { type: String, required: true },
