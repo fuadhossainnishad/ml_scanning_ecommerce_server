@@ -256,7 +256,7 @@ const getPostService = async (req: Request) => {
         query.uploaderType = req.query.tags;
     }
     else if (req.query.tags === "New") {
-        query.sort = "{createdAt:-1}";
+        query.sort = "-createdAt";
     }
     else if (req.query.tags) {
         query.tags = req.query.tags;
