@@ -11,6 +11,7 @@ import Product from "./product.model";
 import StatsServices from "../stats/stats.services";
 import NotificationService from "../notification/notification.service";
 import { NotificationType } from "../notification/notification.interface";
+import ProductServices from "./product.services";
 
 const createProduct: RequestHandler = catchAsync(async (req, res) => {
   if (req.user?.role !== "Brand") {
@@ -116,11 +117,27 @@ const getProduct: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+// const getAllProduct: RequestHandler = catchAsync(async (req, res) => {
+//   const result = await GenericService.findAllResources<IProduct>(
+//     Product,
+//     req.query,
+//     ["category", "productName", "shortDescription", "brandName"]
+//   );
+
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.CREATED,
+//     message: "successfully retrieve Product data",
+//     data: result,
+//   });
+// });
+
 const getAllProduct: RequestHandler = catchAsync(async (req, res) => {
-  const result = await GenericService.findAllResources<IProduct>(
-    Product,
-    req.query,
-    ["category", "productName", "shortDescription", "brandName"]
+  const userId = req.user._id!
+
+  const result = await ProductServices.getAllProductsWithFavourite(
+    req.query,  // ← ParsedQs, matches the service signature exactly
+    userId
   );
 
   sendResponse(res, {
