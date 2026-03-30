@@ -46,17 +46,22 @@ const createStripeProductId = async (name: string, description: string): Promise
   return product.id
 }
 
-const createStripePriceId = async (payload: ISubscription): Promise<string> => {
-  const { price, interval, stripeProductId } = payload
-  const stripe_price = await stripe.prices.create({
-    unit_amount: price * 1000,
+const createStripePriceId = async (payload: { price: number; stripeProductId: string; interval?: string }): Promise<string> => {
+  const { price, stripeProductId, interval } = payload
+
+  const priceData: Stripe.PriceCreateParams = {
+    unit_amount: Math.round(price * 100),
     currency: 'usd',
-    recurring: { interval: interval },
-    product: stripeProductId
-  })
+    product: stripeProductId,
+  }
+
+  if (interval) {
+    priceData.recurring = { interval: interval as Stripe.PriceCreateParams.Recurring.Interval }
+  }
+
+  const stripe_price = await stripe.prices.create(priceData)
   if (!stripe_price || !stripe_price.id) {
     throw new AppError(httpStatus.BAD_REQUEST, "Something error happened, try again later")
-
   }
   return stripe_price.id
 }

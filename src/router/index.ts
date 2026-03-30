@@ -25,6 +25,7 @@ import GraphsRouter from "../module/stats/graph.routes";
 import CardRouter from "../module/card/card.routes";
 import WithdrawRouter from "../module/withdraw/withdraw.routes";
 import RewardRouter from "../module/reward/reward.routes";
+import ShippingRouter from "../module/shipping/shipping.routes";
 
 const router = express.Router();
 
@@ -52,6 +53,7 @@ const moduleRoutes = [
   { path: "/settings", route: SettingsRouter },
   { path: "/stats", route: StatsRouter },
   { path: "/reward", route: RewardRouter },
+  { path: "/shipping", route: ShippingRouter },
   { path: "/withdraw", route: WithdrawRouter },
   { path: "/notification", route: NotificationRouter },
 ];

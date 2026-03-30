@@ -151,7 +151,7 @@ const getRewards: RequestHandler = catchAsync(async (req, res) => {
             redeemableAmount: Number(redeemableAmount.toFixed(2)),
             canRedeem: reward.onboarding_completed && reward.availableRewards >= 100,
             onboarding_completed: reward.onboarding_completed,
-            conversionRate: '100 points = $1',
+            conversionRate: '10 points = ₦1 cashback',
         },
     });
 });
@@ -220,7 +220,7 @@ const redeemRewards: RequestHandler = catchAsync(async (req, res) => {
                 userId: req.user._id.toString(),
                 userEmail: req.user.email,
                 pointsRedeemed: pointsToRedeem.toString(),
-                conversionRate: '0.01',
+                conversionRate: '0.1',
                 type: 'reward_redemption'
             },
         });
@@ -267,7 +267,7 @@ const redeemRewards: RequestHandler = catchAsync(async (req, res) => {
                 stripe_transfer_id: transfer.id,
                 status: 'completed',
                 new_available_rewards: 0,
-                conversion_rate: '100 points = $1',
+                conversion_rate: '10 points = ₦1 cashback',
             },
         });
 

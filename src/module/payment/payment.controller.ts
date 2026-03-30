@@ -112,7 +112,24 @@ const paymentIntent: RequestHandler = catchAsync(async (req, res) => {
         );
     }
 
-    if (Number(findCart.total) !== Number(req.body.data.amount)) {
+    // Build structured address with backward-compatible spotDetails
+    const addressData = req.body.data.address;
+    const shippingTotal = Number(req.body.data.shippingTotal) || 0;
+    const shippingBreakdown = req.body.data.shippingBreakdown || [];
+    const receiverAddressCode = req.body.data.receiverAddressCode;
+
+    if (addressData.street && !addressData.spotDetails) {
+        addressData.spotDetails = [addressData.street, addressData.city, addressData.state, addressData.country, addressData.postalCode].filter(Boolean).join(', ');
+    }
+    if (receiverAddressCode) {
+        addressData.addressCode = receiverAddressCode;
+    }
+    if (!addressData.contact && addressData.phone) {
+        addressData.contact = addressData.phone;
+    }
+
+    const expectedTotal = Number(findCart.total) + shippingTotal;
+    if (Math.abs(expectedTotal - Number(req.body.data.amount)) > 1) {
         throw new AppError(
             httpStatus.BAD_REQUEST,
             "Amount mismatch",
@@ -130,10 +147,12 @@ const paymentIntent: RequestHandler = catchAsync(async (req, res) => {
         userId: req.user._id,
         userType: req.user.role,
         cartId: findCart._id!,
-        address: req.body.data.address,
+        address: addressData,
         items: orderItems,
         orderStatus: OrderStatus.PROCESSING,
         paymentStatus: PaymentStatus.PENDING,
+        shippingTotal,
+        shippingBreakdown,
         isDeleted: false,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -749,7 +768,7 @@ async function trackUserRewards(orderId: Types.ObjectId, paymentAmount: number, 
     try {
         console.log("🎁 Tracking user rewards for order:", orderId);
 
-        const REWARD_RATE = 0.10; // 10% rewards
+        const REWARD_RATE = 0.01; // 1% rewards
         const rewardAmount = paymentAmount * REWARD_RATE;
 
         // Add to pending rewards

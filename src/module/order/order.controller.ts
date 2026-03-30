@@ -13,6 +13,7 @@ import Earning from "../earnings/earnings.model";
 import Reward from "../reward/reward.model";
 import NotificationService from "../notification/notification.service";
 import { NotificationType } from "../notification/notification.interface";
+import ShippingService from "../shipping/shipping.service";
 
 const getOrders: RequestHandler = catchAsync(async (req, res) => {
     if (!req.user) {
@@ -54,17 +55,13 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
         throw new AppError(httpStatus.BAD_REQUEST, 'Order is already delivered. No further transitions allowed.');
     }
 
-    const nextSellerStatusMap: Record<SellerStatus, SellerStatus | null> = {
-        [SellerStatus.MARK_READY]: SellerStatus.MARK_FOR_SHIPPING,
-        [SellerStatus.MARK_FOR_SHIPPING]: SellerStatus.MARK_FOR_COMPLETE,
-        [SellerStatus.MARK_FOR_COMPLETE]: SellerStatus.DELIVERED,
-        [SellerStatus.DELIVERED]: null,
-    };
-
-    const nextSellerStatus = nextSellerStatusMap[sellerStatus as SellerStatus];
-    if (!nextSellerStatus) {
-        throw new AppError(httpStatus.BAD_REQUEST, `No valid transition from sellerStatus: ${sellerStatus}`);
+    // Only allow manual transition from MARK_READY → MARK_FOR_SHIPPING (triggers shipment booking)
+    // MARK_FOR_SHIPPING → MARK_FOR_COMPLETE and MARK_FOR_COMPLETE → DELIVERED are handled by Shipbubble webhook
+    if (sellerStatus !== SellerStatus.MARK_READY) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Shipping status is automatically updated by the courier. Only "Mark Ready" is allowed.');
     }
+
+    const nextSellerStatus = SellerStatus.MARK_FOR_SHIPPING;
 
     const remindStatusMap: Record<SellerStatus, RemindeStatus> = {
         [SellerStatus.MARK_READY]: RemindeStatus.PROCESSING,
@@ -105,48 +102,42 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
         throw new AppError(httpStatus.NOT_FOUND, 'Order item not found or status not matching');
     }
 
-    const updateResult = await Order.updateMany(
-        query,
-        {
-            $set: {
-                'items.$[elem].sellerStatus': nextSellerStatus,
-                'items.$[elem].remindStatus': newRemindStatus,
-                ...(nextSellerStatus === SellerStatus.DELIVERED && {
-                    'items.$[elem].deliveredAt': new Date(),
-                }),
-                updatedAt: new Date(),
-            },
-        },
-        {
-            arrayFilters: [
-                {
-                    'elem.cartProductId': cartProductObjectId,
-                    'elem.sellerStatus': sellerStatus,
+    // Book shipment BEFORE updating status — if booking fails, status stays unchanged
+    const order = await Order.findOne({ 'items.cartProductId': cartProductObjectId });
+    if (order) {
+        await ShippingService.bookShipment(
+            order._id.toString(),
+            req.user._id.toString()
+        );
+        // bookShipment already updates order items to MARK_FOR_SHIPPING via order.save()
+    } else {
+        // Fallback: update status manually if order lookup fails
+        await Order.updateMany(
+            query,
+            {
+                $set: {
+                    'items.$[elem].sellerStatus': nextSellerStatus,
+                    'items.$[elem].remindStatus': newRemindStatus,
+                    updatedAt: new Date(),
                 },
-            ],
-        }
-    );
-
-    if (updateResult.matchedCount === 0 || updateResult.modifiedCount === 0) {
-        throw new AppError(httpStatus.NOT_FOUND, 'Failed to update order item status');
+            },
+            {
+                arrayFilters: [
+                    {
+                        'elem.cartProductId': cartProductObjectId,
+                        'elem.sellerStatus': sellerStatus,
+                    },
+                ],
+            }
+        );
     }
 
-    // DELIVERED → hand off to insertEarning which handles rewards + earnings + stripe + response
-    if (nextSellerStatus === SellerStatus.DELIVERED) {
-        req.body.data.orderUpdateData = {
-            cartProductId: cartProductObjectId,
-            brandId: req.user._id,
-        };
-        return next();
-    }
-
-    // All other transitions → notify and respond
     NotificationService.sendNotification({
         ownerId: req.user._id,
         receiverId: [req.user._id],
         type: NotificationType.SYSTEM,
-        title: 'Order status updated',
-        body: `Order has been moved to: ${nextSellerStatus}`,
+        title: 'Order marked ready',
+        body: 'Shipment has been booked. A courier will pick up your package.',
         data: {
             userId: req.user._id.toString(),
             role: req.user.role,
@@ -161,7 +152,7 @@ const updateStatus: RequestHandler = catchAsync(async (req, res, next: NextFunct
     sendResponse(res, {
         success: true,
         statusCode: httpStatus.OK,
-        message: 'Order status updated successfully',
+        message: 'Order marked ready. Shipment booked.',
         data: result,
     });
 });
@@ -281,7 +272,7 @@ const releaseRewardsForDeliveredItem = async (
         const productData = getProductAmountFromCart(cart, cartProductId);
         if (!productData) return;
 
-        const REWARD_RATE = 0.10;
+        const REWARD_RATE = 0.01;
         const rewardAmount = productData.productTotal * REWARD_RATE;
 
         console.log(`[Rewards] Releasing $${rewardAmount} rewards for buyer=${buyerId}`);

@@ -4,6 +4,22 @@ export interface DeliveryAddress {
     name: string
     contact: string
     spotDetails: string
+    email?: string
+    phone?: string
+    street?: string
+    city?: string
+    state?: string
+    country?: string
+    postalCode?: string
+    addressCode?: number
+}
+
+export interface ShippingBreakdownItem {
+    brandId: Types.ObjectId
+    brandName: string
+    shippingCost: number
+    courierName?: string
+    estimatedDays?: number
 }
 
 export enum PaymentStatus {
@@ -48,6 +64,8 @@ export interface IOrder {
     items: OrderItem[];
     orderStatus: OrderStatus
     paymentStatus: PaymentStatus
+    shippingTotal?: number
+    shippingBreakdown?: ShippingBreakdownItem[]
     isDeleted: boolean
     createdAt: Date;
     updatedAt: Date;

@@ -51,9 +51,20 @@ const getCartService = async (req: Request) => {
               as: "p",
               in: {
                 $multiply: [
-                  // { 
-                  //   $ifNull: ["$$p.productPrice", "$$p.discountPrice"] 
-                  // },
+                  "$$p.productPrice",
+                  "$$p.quantity"
+                ]
+              }
+            }
+          }
+        },
+        total: {
+          $sum: {
+            $map: {
+              input: "$products",
+              as: "p",
+              in: {
+                $multiply: [
                   "$$p.productPrice",
                   "$$p.quantity"
                 ]
@@ -65,30 +76,21 @@ const getCartService = async (req: Request) => {
     },
     {
       $addFields: {
-        total: {
+        discount: {
           $sum: {
             $map: {
               input: "$products",
               as: "p",
               in: {
-                $multiply: [
-                  { 
-$cond: {
-                  if: { $gt: ["$$p.discountPrice", 0] },
-                  then: "$$p.discountPrice",
-                  else: "$$p.productPrice"
-                }                   },
-                  "$$p.quantity"
-                ]
+                $cond: {
+                  if: { $and: [{ $gt: ["$$p.discountPrice", 0] }, { $lt: ["$$p.discountPrice", "$$p.productPrice"] }] },
+                  then: { $multiply: [{ $subtract: ["$$p.productPrice", "$$p.discountPrice"] }, "$$p.quantity"] },
+                  else: 0
+                }
               }
             }
           }
         }
-      }
-    },
-    {
-      $addFields: {
-        discount: { $subtract: ["$subtotal", "$total"] }
       }
     }
 
