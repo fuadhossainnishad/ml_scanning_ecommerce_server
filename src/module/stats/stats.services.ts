@@ -253,6 +253,7 @@ const brandOfTheWeekService = async () => {
                 brandId: "$brand._id",
                 brandName: "$brand.brandName",
                 brandLogo: "$brand.brandLogo",
+                brandStory: "$brand.brandStory",
                 theme: "$brand.theme",
             },
         },
