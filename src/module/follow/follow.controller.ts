@@ -5,6 +5,8 @@ import AppError from "../../app/error/AppError";
 import sendResponse from "../../utility/sendResponse";
 import GenericService from "../../utility/genericService.helpers";
 import { idConverter } from "../../utility/idConverter";
+import User from "../user/user.model";
+import Brand from "../brand/brand.model";
 import Admin from "../admin/admin.model";
 import { IFollow } from "./follow.interface";
 import Follow from "./follow.model";
@@ -135,7 +137,10 @@ const createFollow: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid target user ID", "");
   }
 
-  const targetUser = await Admin.findOne({ _id: convertedId }, { role: 1 });
+  const targetUser =
+    await Brand.findOne({ _id: convertedId }, { role: 1 }) ||
+    await User.findOne({ _id: convertedId }, { role: 1 }) ||
+    await Admin.findOne({ _id: convertedId }, { role: 1 });
   if (!targetUser) {
     throw new AppError(httpStatus.NOT_FOUND, "User to follow not found", "");
   }

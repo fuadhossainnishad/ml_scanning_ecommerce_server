@@ -46,7 +46,7 @@ const auth = (...requireRoles: string[]) => {
     console.log("Decoded Token:", decoded);
 
     const QueryModel = getRoleModels(role);
-    if (!Model) {
+    if (!QueryModel) {
       throw new AppError(httpStatus.FORBIDDEN, "Role not supported", "");
     }
 

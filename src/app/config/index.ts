@@ -38,6 +38,11 @@ export default {
   embedding_url: process.env.EMBEDDING_URL!,
   local: process.env.LOCAL!,
   frontendUrl: process.env.FRONTEND_URL!,
+  shipbubble: {
+    apiKey: process.env.SHIPBUBBLE_API_KEY || '',
+    baseUrl: process.env.SHIPBUBBLE_BASE_URL || 'https://api.shipbubble.com/v1',
+    defaultCategoryId: process.env.SHIPBUBBLE_CATEGORY_ID || '98246239', // Fashion wears
+  },
   firebase: {
     projectId: process.env.FIREBASE_PROJECT_ID,
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,

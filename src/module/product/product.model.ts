@@ -56,6 +56,7 @@ const ProductSchema = new Schema<IProduct>({
   stripe_price_id: { type: String, required: true },
   discountPrice: { type: Number, required: true },
   saleTag: { type: Boolean, default: false },
+  weight: { type: Number, default: 0.5 },
   shippingNote: { type: String, required: true },
   isDeleted: {
     type: Boolean,

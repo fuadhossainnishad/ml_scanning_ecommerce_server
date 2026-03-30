@@ -24,7 +24,23 @@ const DeliveryAddressSchema = new Schema<DeliveryAddress>({
         type: String,
         required: true,
     },
-});
+    email: { type: String },
+    phone: { type: String },
+    street: { type: String },
+    city: { type: String },
+    state: { type: String },
+    country: { type: String },
+    postalCode: { type: String },
+    addressCode: { type: Number },
+}, { _id: false });
+
+const ShippingBreakdownSchema = new Schema({
+    brandId: { type: Schema.Types.ObjectId, ref: 'Brand', required: true },
+    brandName: { type: String, required: true },
+    shippingCost: { type: Number, required: true },
+    courierName: { type: String },
+    estimatedDays: { type: Number },
+}, { _id: false });
 
 const OrderItemSchema = new Schema<OrderItem>({
     cartProductId: {
@@ -97,6 +113,8 @@ const OrderSchema = new Schema<IOrder>(
             required: true,
             default: PaymentStatus.PENDING,
         },
+        shippingTotal: { type: Number, default: 0 },
+        shippingBreakdown: [ShippingBreakdownSchema],
         isDeleted: {
             type: Boolean,
             default: false,
@@ -114,8 +132,9 @@ const computeOrderStatus = (items: IOrder['items']): OrderStatus => {
     const allReady = items.every(item => item.sellerStatus === SellerStatus.MARK_READY);
     const allShipping = items.every(item => item.sellerStatus === SellerStatus.MARK_FOR_SHIPPING);
     const allComplete = items.every(item => item.sellerStatus === SellerStatus.MARK_FOR_COMPLETE);
+    const allDelivered = items.every(item => item.sellerStatus === SellerStatus.DELIVERED);
 
-    if (allComplete) {
+    if (allDelivered || allComplete) {
         return OrderStatus.DELIVERED;
     }
     if (allShipping) {
@@ -127,13 +146,13 @@ const computeOrderStatus = (items: IOrder['items']): OrderStatus => {
     return OrderStatus.PROCESSING;
 };
 
-OrderSchema.post('save', function (doc) {
+OrderSchema.post('save', async function (doc) {
     if (doc.paymentStatus === 'pending') return;
 
     const newStatus = computeOrderStatus(doc.items);
     if (newStatus !== doc.orderStatus) {
-        doc.orderStatus = newStatus;
-        doc.save();
+        // Use updateOne to avoid triggering post-save hook again
+        await Order.updateOne({ _id: doc._id }, { orderStatus: newStatus });
     }
 })
 

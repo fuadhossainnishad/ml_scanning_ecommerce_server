@@ -75,8 +75,8 @@ const insertEarning: RequestHandler = catchAsync(async (req, res, _next: NextFun
     }
 
     const productTotal = price * quantity;
-    const brandAmount = Math.round(productTotal * 0.90 * 100) / 100; // 90% after 10% platform fee
-    const rewardAmount = Math.round(productTotal * 0.10 * 100) / 100; // 10% reward for buyer
+    const brandAmount = Math.round(productTotal * 0.99 * 100) / 100; // 99% after 1% platform fee
+    const rewardAmount = Math.round(productTotal * 0.01 * 100) / 100; // 1% reward for buyer
 
     console.log(`[insertEarning] productTotal=$${productTotal} brandAmount=$${brandAmount} rewardAmount=$${rewardAmount}`);
 

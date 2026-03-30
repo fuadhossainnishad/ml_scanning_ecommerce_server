@@ -10,6 +10,7 @@ import { createServer } from "http";
 import { socketio } from "./app/config/socketio.config";
 import path from "path";
 import PaymentController from "./module/payment/payment.controller";
+import ShippingController from "./module/shipping/shipping.controller";
 import auth from "./middleware/auth";
 import { initializeFirebase } from "./app/config/firebase.config";
 
@@ -77,6 +78,9 @@ app.post('/api/v1/payment/webhook', (req, res, next) => {
 //   express.raw({ type: 'application/json' }),
 //   PaymentController.webhooks
 // );
+
+// Shipbubble webhook — raw body (same pattern as Stripe)
+app.post('/api/v1/shipping/webhook', express.json(), ShippingController.webhookHandler);
 
 app.use("/api", rateLimiter);
 

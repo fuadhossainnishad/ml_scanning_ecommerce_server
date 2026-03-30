@@ -47,6 +47,7 @@ export interface IProduct {
   stripe_price_id: string
   discountPrice: number
   saleTag: boolean
+  weight?: number
   shippingNote: string,
   isDeleted: boolean
   createdAt: Date

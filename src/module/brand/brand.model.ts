@@ -22,17 +22,29 @@ const BrandSchema: Schema = new Schema<IBrand>(
     },
     brandStory: {
       type: String,
-      dafault: ""
+      default: ""
     },
     theme: {
       type: String,
-      dafault: ""
+      default: ""
     },
     stripe_accounts_id: {
       type: String,
       required: true,
       default: ""
     },
+    pickupAddress: {
+      type: new Schema(
+        {
+          name: { type: String, required: true },
+          email: { type: String, required: true },
+          phone: { type: String, required: true },
+          address: { type: String, required: true },
+        },
+        { _id: false }
+      ),
+    },
+    pickupAddressCode: { type: Number },
   }
   , { timestamps: true, collection: "brands" }
 );

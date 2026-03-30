@@ -328,7 +328,7 @@ const releaseEscrow: RequestHandler = catchAsync(async (req, res) => {
     }
 
     const cart = order.cartId as any;
-    const PLATFORM_FEE_RATE = 0.10;
+    const PLATFORM_FEE_RATE = 0.01;
     const brandAmounts = new Map<string, number>();
 
     for (const product of cart.products) {

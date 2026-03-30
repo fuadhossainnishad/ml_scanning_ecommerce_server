@@ -61,18 +61,12 @@ const fetchAggregation = async <T>(Model: Model<T>, projects: string[], query: R
     };
 };
 
-const fetchAggregationTwo = async <T>(Model: Model<T>, projects: string[], query: Record<string, unknown>): Promise<IAggregationResponse<T>> => {
+const fetchAggregationTwo = async <T>(Model: Model<T>, _projects: string[], query: Record<string, unknown>): Promise<IAggregationResponse<T>> => {
     const { page, limit, skip } = calculatePagination(query);
-
-    const projectFields: { [key: string]: number } = projects.reduce((acc, field) => {
-        acc[field] = 1;
-        return acc;
-    }, {} as { [key: string]: number });
 
     const total = await Model.countDocuments();
 
     const result = await Model.aggregate([
-        { $project: projectFields },
         { $skip: skip },
         { $limit: limit }
     ]);
@@ -253,6 +247,7 @@ const brandOfTheWeekService = async () => {
                 brandId: "$brand._id",
                 brandName: "$brand.brandName",
                 brandLogo: "$brand.brandLogo",
+                brandStory: "$brand.brandStory",
                 theme: "$brand.theme",
             },
         },
