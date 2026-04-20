@@ -15,7 +15,8 @@ import { initializeFirebase } from "./app/config/firebase.config";
 
 const app = express();
 // const allowedOrigins = ["http://192.168.56.1:3000", "*"];
-const allowedOrigins = ["http://localhost:3000"];
+const allowedOrigins = ["http://localhost:3000", "https://www.arkiveinc.com", "https://arkive-web.vercel.app",
+  "https://admin.arkiveinc.com"];
 
 export const httpServer = createServer(app);
 socketio(httpServer);
@@ -46,7 +47,7 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "http://localhost:3000"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "http://localhost:3000", "https://admin.arkiveinc.com"],
       },
     },
   })
@@ -84,14 +85,13 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(
-  cors({
-    // origin: process.env.NODE_ENV === "production" ? config.domain! : "*",
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  })
-);
+const corsOptions = {
+  origin: allowedOrigins,
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use("/src/uploads", express.static("./src/uploads"));
 
