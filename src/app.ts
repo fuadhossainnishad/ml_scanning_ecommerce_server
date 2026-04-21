@@ -47,7 +47,18 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "http://localhost:3000", "https://admin.arkiveinc.com"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "http://localhost:3000",
+          "https://admin.arkiveinc.com",
+          "https://api.arkiveinc.com"
+        ],
+        connectSrc: [
+          "'self'",
+          "https://api.arkiveinc.com",
+          "wss://api.arkiveinc.com",
+        ],
       },
     },
   })
@@ -91,7 +102,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+// app.options("*", cors(corsOptions));
 
 app.use("/src/uploads", express.static("./src/uploads"));
 
