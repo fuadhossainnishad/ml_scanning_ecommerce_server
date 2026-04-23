@@ -7,39 +7,39 @@ const router = express.Router();
 // ============ FCM Token Management ============
 router.post(
   "/fcm/register",
-  auth('User', 'Brand'),
+  auth('User', 'Brand', 'Admin'),
   NotificationController.registerFCMToken
 );
 
 router.post(
   "/fcm/remove",
-  auth('User', 'Brand'),
+  auth('User', 'Brand', 'Admin'),
   NotificationController.removeFCMToken
 );
 
 // ============ Notification Settings ============
 router.get(
   "/settings",
-  auth('User', 'Brand'),
+  auth('User', 'Brand', 'Admin'),
   NotificationController.getNotificationSettings
 );
 
 router.patch(
   "/settings",
-  auth('User', 'Brand'),
+  auth('User', 'Brand', 'Admin'),
   NotificationController.updateNotificationSettings
 );
 
 // ============ Notification Read Status ============
 router.get(
   "/unread-count",
-  auth('User', 'Brand'),
+  auth('User', 'Brand', 'Admin'),
   NotificationController.getUnreadCount
 );
 
 router.patch(
   "/read-all",
-  auth('User', 'Brand'),
+  auth('User', 'Brand', 'Admin'),
   NotificationController.markAllAsRead
 );
 

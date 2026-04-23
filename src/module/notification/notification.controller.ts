@@ -13,7 +13,7 @@ import NotificationService from "./notification.service";
 // Get single notification by ID
 const getNotification: RequestHandler = catchAsync(async (req, res) => {
     const { id } = req.query;
-    
+
     if (!id || typeof id !== "string") {
         throw new AppError(httpStatus.BAD_REQUEST, "Notification ID is required");
     }

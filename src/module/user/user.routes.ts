@@ -15,7 +15,7 @@ router.post('/fcm/remove', auth('User', 'Brand'), UserController.removeFCMToken)
 router
   .route("/")
   .get(
-    auth("User"),
+    auth("User","Admin"),
     UserController.getUser
   )
   .patch(
