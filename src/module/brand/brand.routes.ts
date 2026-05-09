@@ -9,7 +9,7 @@ const router = express.Router();
 router
   .route('/')
   .get(
-    auth('User', 'Brand'),
+    // auth('User', 'Brand'),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
     BrandController.getBrand
   )

@@ -548,12 +548,12 @@ const postFilterList: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const brandOfTheWeek: RequestHandler = catchAsync(async (req, res) => {
-  if (!req.user) {
-    throw new AppError(
-      httpStatus.NOT_ACCEPTABLE,
-      "Authenticated user is required",
-    );
-  }
+  // if (!req.user) {
+  //   throw new AppError(
+  //     httpStatus.NOT_ACCEPTABLE,
+  //     "Authenticated user is required",
+  //   );
+  // }
 
   let result = await StatsServices.brandOfTheWeekService();
 

@@ -35,9 +35,14 @@ const getReview: RequestHandler = catchAsync(async (req, res) => {
   const { productId } = req.query;
   console.log("ReviewId: ", productId!.toString());
 
-  if (!productId || !req.user || req.user.role !== 'User') {
+  // if (!productId || !req.user || req.user.role !== 'User') {
+  //   throw new AppError(httpStatus.BAD_REQUEST, "ProductId ID is required", "");
+  // }
+
+  if (!productId) {
     throw new AppError(httpStatus.BAD_REQUEST, "ProductId ID is required", "");
   }
+
   const result = await ReviewServices.getReviewService<IReview>(productId as string, req.query);
 
   sendResponse(res, {

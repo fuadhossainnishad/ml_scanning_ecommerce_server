@@ -23,7 +23,11 @@ router
     .get("/orders", auth("Brand"), StatsController.getBrandStats)
     .get("/earnings", auth("Brand"), EarningsController.getEarningsSummary)
     .get("/feedFilterlist", StatsController.postFilterList)
-    .get("/brand_of_the_week", auth("User"), StatsController.brandOfTheWeek)
+    .get(
+        "/brand_of_the_week",
+        // auth("User"),
+        StatsController.brandOfTheWeek
+    )
     .get("/categorylist/:id", StatsController.getCategoryList);
 
 router.get(

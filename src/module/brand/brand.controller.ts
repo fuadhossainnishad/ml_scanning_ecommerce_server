@@ -10,9 +10,9 @@ import Brand from "./brand.model";
 
 const getBrand: RequestHandler = catchAsync(async (req, res) => {
 
-  if (!req.user) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Authenticate User/Brand is required", "");
-  }
+  // if (!req.user) {
+  //   throw new AppError(httpStatus.BAD_REQUEST, "Authenticate User/Brand is required", "");
+  // }
 
   const result = await GenericService.findAllResources<IBrand>(
     Brand,
