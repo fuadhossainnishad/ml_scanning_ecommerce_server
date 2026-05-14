@@ -15,27 +15,28 @@ import ProductServices from "./product.services";
 
 const createProduct: RequestHandler = catchAsync(async (req, res) => {
   if (req.user?.role !== "Brand") {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Brand ID is required",
-      ""
-    );
+    throw new AppError(httpStatus.BAD_REQUEST, "Brand ID is required", "");
   }
 
   console.log("products:", req.user, req.body!);
 
-
-  const { productName, shortDescription, price } = req.body.data
+  const { productName, shortDescription, price } = req.body.data;
   if (!productName || !shortDescription || !price) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "Name, Description, price are required",
-      ""
+      "",
     );
   }
 
-  const stripeProductId = await StripeServices.createStripeProductId(productName, shortDescription)
-  const stripePriceId = await StripeServices.createStripePriceId({ ...req.body.data, stripeProductId })
+  const stripeProductId = await StripeServices.createStripeProductId(
+    productName,
+    shortDescription,
+  );
+  const stripePriceId = await StripeServices.createStripePriceId({
+    ...req.body.data,
+    stripeProductId,
+  });
 
   req.body.data = {
     ...req.body.data,
@@ -43,27 +44,29 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
     brandName: req.user.brandName,
     stripe_product_id: stripeProductId,
     stripe_price_id: stripePriceId,
-  }
+  };
 
   console.log("products:", req.user, req.body!);
   console.log("measurement:", req.body.data.measurement!);
 
-
-
   const result = await GenericService.insertResources<IProduct>(
     Product,
-    req.body?.data
+    req.body?.data,
   );
-  console.log("input products:", result)
+  console.log("input products:", result);
 
-  const storeEmbedd = await StatsServices.embeddingServices({ file: req.body.data.productImages, product_id: result.product._id.toString(), category: result.product.category })
-  console.log("storeEmbedd:", storeEmbedd)
+  const storeEmbedd = await StatsServices.embeddingServices({
+    file: req.body.data.productImages,
+    product_id: result.product._id.toString(),
+    category: result.product.category,
+  });
+  console.log("storeEmbedd:", storeEmbedd);
 
   if (!storeEmbedd) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       "There is problem in storing embedding",
-      ""
+      "",
     );
   }
 
@@ -71,18 +74,16 @@ const createProduct: RequestHandler = catchAsync(async (req, res) => {
     ownerId: req.user._id,
     receiverId: [req.user._id],
     type: NotificationType.SYSTEM,
-    title: 'Product created',
+    title: "Product created",
     body: `You have uploaded new product successfully`,
     data: {
       userId: req.user._id.toString(),
       role: req.user.role,
-      action: 'created',
-      time: new Date().toISOString()
+      action: "created",
+      time: new Date().toISOString(),
     },
-    notifyAdmin: true
+    notifyAdmin: true,
   });
-
-
 
   sendResponse(res, {
     success: true,
@@ -97,18 +98,14 @@ const getProduct: RequestHandler = catchAsync(async (req, res) => {
   console.log("ProductId: ", ProductId);
 
   if (!ProductId) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Product ID is required",
-      ""
-    );
+    throw new AppError(httpStatus.BAD_REQUEST, "Product ID is required", "");
   }
   const result = await GenericService.findResources<IProduct>(
     Product,
-    await idConverter(ProductId)
+    await idConverter(ProductId),
   );
 
-  console.log("getProduct:", result)
+  console.log("getProduct:", result);
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
@@ -133,11 +130,11 @@ const getProduct: RequestHandler = catchAsync(async (req, res) => {
 // });
 
 const getAllProduct: RequestHandler = catchAsync(async (req, res) => {
-  const userId = req.user._id!
+  const userId = req.user?._id || null;
 
-  const result = await ProductServices.getAllProductsWithFavourite(
-    req.query,  // ← ParsedQs, matches the service signature exactly
-    userId
+  const result = await ProductServices.getAllProductsWithFavourite2(
+    req.query,
+    userId,
   );
 
   sendResponse(res, {
@@ -150,7 +147,11 @@ const getAllProduct: RequestHandler = catchAsync(async (req, res) => {
 
 const updateProduct: RequestHandler = catchAsync(async (req, res) => {
   if (req.user.role !== "Brand") {
-    throw new AppError(httpStatus.UNAUTHORIZED, "Brand is not authenticated", "");
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Brand is not authenticated",
+      "",
+    );
   }
   const id = req?.params.id;
 
@@ -164,22 +165,22 @@ const updateProduct: RequestHandler = catchAsync(async (req, res) => {
   const result = await GenericService.updateResources<IProduct>(
     Product,
     await idConverter(id),
-    req.body.data
+    req.body.data,
   );
 
   await NotificationService.sendNotification({
     ownerId: req.user._id,
     receiverId: [req.user._id],
     type: NotificationType.SYSTEM,
-    title: 'Product updated',
+    title: "Product updated",
     body: `You have update product successfully`,
     data: {
       userId: req.user._id.toString(),
       role: req.user.role,
-      action: 'updated',
-      time: new Date().toISOString()
+      action: "updated",
+      time: new Date().toISOString(),
     },
-    notifyAdmin: true
+    notifyAdmin: true,
   });
 
   sendResponse(res, {
@@ -199,30 +200,30 @@ const deleteProduct: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(
       httpStatus.NOT_FOUND,
       "Only admin can do update Product",
-      ""
+      "",
     );
   }
-  const { id } = req.params
+  const { id } = req.params;
   const result = await GenericService.deleteResources<IProduct, "brandId">(
     Product,
     await idConverter(id),
     req.user._id,
-    'brandId'
+    "brandId",
   );
 
   await NotificationService.sendNotification({
     ownerId: req.user._id,
     receiverId: [req.user._id],
     type: NotificationType.SYSTEM,
-    title: 'Product deleted',
+    title: "Product deleted",
     body: `You have deleted product successfully`,
     data: {
       userId: req.user._id.toString(),
       role: req.user.role,
-      action: 'deleted',
-      time: new Date().toISOString()
+      action: "deleted",
+      time: new Date().toISOString(),
     },
-    notifyAdmin: true
+    notifyAdmin: true,
   });
 
   sendResponse(res, {
@@ -232,8 +233,6 @@ const deleteProduct: RequestHandler = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
-
 
 const ProductController = {
   createProduct,
