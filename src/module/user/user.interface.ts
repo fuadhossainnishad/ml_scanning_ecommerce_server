@@ -4,9 +4,9 @@ import { ISignup } from "../auth/auth.interface";
 export interface IUser extends ISignup, IAdmin {
   about: string;
   hometown: string;
-  favouriteStyles: string[],
-  theme:string
-  fcm?: string; 
+  favouriteStyles: string[];
+  theme: string;
+  fcm?: string;
 }
 
 export type TUserUpdate = Partial<IUser> & {

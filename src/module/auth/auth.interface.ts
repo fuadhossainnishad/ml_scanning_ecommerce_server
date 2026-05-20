@@ -10,7 +10,7 @@ export const Role = ["User", "Brand", "Admin"] as const;
 
 export interface IFCMToken {
   token: string;
-  device: 'ios' | 'android' | 'web';
+  device: "ios" | "android" | "web";
   addedAt: Date;
 }
 
@@ -22,7 +22,6 @@ export interface INotificationSettings {
   rewards: boolean;
   withdrawals: boolean;
 }
-
 
 export interface ISignIn {
   // isAuthProvider?: boolean;
@@ -36,15 +35,15 @@ export interface ISignup extends ISignIn {
   firstName: string;
   lastName: string;
   userName: string;
-  profile: string[],
-  coverPhoto: string[],
-  countryCode: string;
-  mobile: string;
+  profile: string[];
+  coverPhoto: string[];
+  // countryCode: string;
+  // mobile: string;
   confirmedPassword: string;
   role: TRole;
-  passwordUpdatedAt?: Date
-  last_login?: Date
-  failed_attempts?: number
+  passwordUpdatedAt?: Date;
+  last_login?: Date;
+  failed_attempts?: number;
   stripe_customer_id: string;
   fcmTokens?: IFCMToken[];
   notificationSettings?: INotificationSettings;

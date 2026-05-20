@@ -11,7 +11,6 @@ import { jwtHelpers } from "../../app/jwtHelpers/jwtHelpers";
 import Admin from "../admin/admin.model";
 
 const loginService = async (payload: ISignIn) => {
-
   if (!payload.email || !payload.password) {
     throw new AppError(httpStatus.NOT_FOUND, "Email already exist", "");
   }
@@ -96,7 +95,7 @@ const requestForgotPasswordService = async (email: string) => {
     throw new AppError(
       httpStatus.INTERNAL_SERVER_ERROR,
       "Failed to process password reset request",
-      error as string
+      error as string,
     );
   }
 };
@@ -121,8 +120,6 @@ const verifyOtpService = async (payload: TVerifyOtp) => {
     throw new AppError(httpStatus.NOT_FOUND, "Email not registered", "");
   }
 
-
-
   await Otp.deleteOne({ _id: otpRecord._id });
 
   return { user: user };
@@ -136,7 +133,7 @@ const resetPasswordService = async (payload: TResetPassword) => {
   const QueryModel = Admin;
   const user = await QueryModel.findOne(
     { _id: userIdObject, isDeleted: { $ne: true } },
-    { password: 1, email: 1 }
+    { password: 1, email: 1 },
   );
 
   if (!user) {
@@ -146,7 +143,7 @@ const resetPasswordService = async (payload: TResetPassword) => {
   const updatedUser = await QueryModel.findOneAndUpdate(
     { _id: userIdObject, isDeleted: { $ne: true } },
     { password: newPassword },
-    { new: true }
+    { new: true },
   ).select("-password");
 
   if (!updatedUser) {
@@ -164,7 +161,7 @@ const updatePasswordService = async (payload: TUpdatePassword) => {
   const QueryModel = Admin;
   const user = await QueryModel.findOne(
     { _id: userIdObject, isDeleted: { $ne: true } },
-    { password: 1, email: 1 }
+    { password: 1, email: 1 },
   );
 
   if (!user) {
@@ -177,14 +174,14 @@ const updatePasswordService = async (payload: TUpdatePassword) => {
     throw new AppError(
       httpStatus.FORBIDDEN,
       "Current password is incorrect",
-      ""
+      "",
     );
   }
 
   const updatedUser = await QueryModel.findOneAndUpdate(
     { _id: userIdObject, isDeleted: { $ne: true } },
     { password: newPassword },
-    { new: true }
+    { new: true },
   ).select("-password");
 
   if (!updatedUser) {
@@ -195,26 +192,28 @@ const updatePasswordService = async (payload: TUpdatePassword) => {
 };
 
 const GenerateToken = async (payload: IJwtPayload) => {
-
   const accessToken = jwtHelpers.generateToken(
     payload,
     config.jwt_access_secret as string,
-    config.expires_in as string
+    config.expires_in as string,
   );
 
   const refreshToken = jwtHelpers.generateToken(
     payload,
     config.jwt_refresh_secret as string,
-    config.refresh_expires_in as string
+    config.refresh_expires_in as string,
   );
 
   if (!accessToken || !refreshToken) {
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "Token generation failed", "");
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      "Token generation failed",
+      "",
+    );
   }
 
   return { accessToken, refreshToken };
-}
-
+};
 
 const AuthServices = {
   loginService,
@@ -222,7 +221,7 @@ const AuthServices = {
   verifyOtpService,
   resetPasswordService,
   updatePasswordService,
-  GenerateToken
+  GenerateToken,
 };
 
 export default AuthServices;

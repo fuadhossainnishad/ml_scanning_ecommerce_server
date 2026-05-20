@@ -6,37 +6,48 @@ import config from "../../app/config";
 import sendResponse from "../../utility/sendResponse";
 import AppError from "../../app/error/AppError";
 import GenericService from "../../utility/genericService.helpers";
-import User from '../user/user.model';
+import User from "../user/user.model";
 import { IUser } from "../user/user.interface";
 import { IJwtPayload } from "./auth.interface";
-import { IAdmin } from '../admin/admin.interface';
+import { IAdmin } from "../admin/admin.interface";
 import { IBrand } from "../brand/brand.interface";
-import Admin from '../admin/admin.model';
+import Admin from "../admin/admin.model";
 import Brand from "../brand/brand.model";
 import StripeUtils from "../../utility/stripe.utils";
 import Reward from "../reward/reward.model";
 
-
 export const signUp: RequestHandler = catchAsync(async (req, res) => {
   const { role, email } = req.body.data;
-  const key = role.toLowerCase()
+  const key = role.toLowerCase();
   console.log(email, role);
 
-  if (role !== 'Admin') {
-    req.body.data.stripe_customer_id = await StripeUtils.CreateCustomerId(email)
+  if (role !== "Admin") {
+    req.body.data.stripe_customer_id =
+      await StripeUtils.CreateCustomerId(email);
   }
 
-  if (role === 'Brand') {
-    req.body.data.stripe_accounts_id = await StripeUtils.CreateStripeAccount(email, 'US', req.ip!, req.body.data.brandName);
+  if (role === "Brand") {
+    req.body.data.stripe_accounts_id = await StripeUtils.CreateStripeAccount(
+      email,
+      "US",
+      req.ip!,
+      req.body.data.brandName,
+    );
   }
 
-  let result
+  let result;
   switch (role) {
     case "Admin":
-      result = await GenericService.insertResources<IAdmin>(Admin, req.body.data);
+      result = await GenericService.insertResources<IAdmin>(
+        Admin,
+        req.body.data,
+      );
       break;
     case "Brand":
-      result = await GenericService.insertResources<IBrand>(Brand, req.body.data);
+      result = await GenericService.insertResources<IBrand>(
+        Brand,
+        req.body.data,
+      );
       break;
     case "User":
       result = await GenericService.insertResources<IUser>(User, req.body.data);
@@ -61,7 +72,7 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
           isDeleted: false,
         },
       },
-      { upsert: true }
+      { upsert: true },
     );
   }
 
@@ -89,8 +100,6 @@ export const signUp: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const login: RequestHandler = catchAsync(async (req, res) => {
-
-
   const user = await AuthServices.loginService(req.body.data);
   console.log(req.body.data!);
 
@@ -138,12 +147,10 @@ const login: RequestHandler = catchAsync(async (req, res) => {
     message: `${user.role} successfully login`,
     data: { ...token, role: user.role, id: user._id },
   });
-
-
 });
 
 const requestForgotPassword: RequestHandler = catchAsync(async (req, res) => {
-  const { email } = req.body.data
+  const { email } = req.body.data;
   const result = await AuthServices.requestForgotPasswordService(email);
 
   sendResponse(res, {
@@ -173,9 +180,12 @@ const verifyOtp: RequestHandler = catchAsync(async (req, res) => {
 });
 
 const resetPassword: RequestHandler = catchAsync(async (req, res) => {
-  const { _id } = req.user
-  const { newPassword } = req.body.data || {}
-  const result = await AuthServices.resetPasswordService({ userId: _id, newPassword: newPassword });
+  const { _id } = req.user;
+  const { newPassword } = req.body.data || {};
+  const result = await AuthServices.resetPasswordService({
+    userId: _id,
+    newPassword: newPassword,
+  });
   // await NotificationServices.sendNoification({
   //   ownerId: result.user?._id,
   //   key: "notification",
@@ -237,7 +247,10 @@ const updateFcm: RequestHandler = catchAsync(async (req, res) => {
   const { fcm } = req.body.data;
 
   if (!fcm) {
-    throw new AppError(httpStatus.BAD_REQUEST, "FCM token needed for push notification");
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "FCM token needed for push notification",
+    );
   }
 
   // Check if token already exists in fcmTokens array
@@ -255,21 +268,23 @@ const updateFcm: RequestHandler = catchAsync(async (req, res) => {
       $push: {
         fcmTokens: {
           token: fcm,
-          device: 'unknown',
-          addedAt: new Date()
-        }
+          device: "unknown",
+          addedAt: new Date(),
+        },
       },
       // Also update legacy fcm field for backward compatibility
       $set: {
-        fcm: fcm
-      }
+        fcm: fcm,
+      },
     });
 
-    console.log(`✅ FCM token registered (legacy endpoint) for ${req.user.role} ${_id}`);
+    console.log(
+      `✅ FCM token registered (legacy endpoint) for ${req.user.role} ${_id}`,
+    );
   } else {
     // Just update the legacy fcm field
     await Admin.findByIdAndUpdate(_id, {
-      $set: { fcm: fcm }
+      $set: { fcm: fcm },
     });
   }
 
@@ -277,7 +292,7 @@ const updateFcm: RequestHandler = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: "FCM updated successfully",
-    data: { fcmToken: fcm }
+    data: { fcmToken: fcm },
   });
 });
 
@@ -288,7 +303,7 @@ const AuthController = {
   verifyOtp,
   resetPassword,
   updatePassword,
-  updateFcm
+  updateFcm,
 };
 
 export default AuthController;
