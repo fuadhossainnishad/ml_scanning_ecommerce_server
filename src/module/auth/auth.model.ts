@@ -28,8 +28,8 @@ export const SignupSchema: Schema = new Schema<IUser>({
   userName: { type: String, default: "" },
   profile: { type: [String], default: [] },
   coverPhoto: { type: [String], default: [] },
-  // mobile: { type: String, required: true },
-  // countryCode: { type: String, required: true },
+  mobile: { type: String, required: false, default: "" },
+  countryCode: { type: String, required: false, default: "" },
   passwordUpdatedAt: { type: Date, default: Date.now },
   stripe_customer_id: {
     type: String,

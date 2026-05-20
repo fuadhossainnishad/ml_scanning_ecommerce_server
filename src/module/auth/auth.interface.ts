@@ -37,8 +37,8 @@ export interface ISignup extends ISignIn {
   userName: string;
   profile: string[];
   coverPhoto: string[];
-  // countryCode: string;
-  // mobile: string;
+  countryCode?: string;
+  mobile?: string;
   confirmedPassword: string;
   role: TRole;
   passwordUpdatedAt?: Date;
