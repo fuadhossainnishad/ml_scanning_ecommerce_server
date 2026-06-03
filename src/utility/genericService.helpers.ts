@@ -8,7 +8,7 @@ const insertResources = async <T>(Model: Model<T>, payload: T) => {
   if (!insertResource) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `New ${Model.modelName.toLowerCase()} data not inserted`
+      `New ${Model.modelName.toLowerCase()} data not inserted`,
     );
   }
   return { [Model.modelName.toLowerCase()]: insertResource };
@@ -18,14 +18,14 @@ const findResources = async <T>(Model: Model<T>, QueryId: Types.ObjectId) => {
   if (!QueryId) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `Id required to find ${Model.modelName} related data`
+      `Id required to find ${Model.modelName} related data`,
     );
   }
   const resource = await Model.findById(QueryId);
   if (!resource) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `${QueryId.toString()} in ${Model.modelName} not found`
+      `${QueryId.toString()} in ${Model.modelName} not found`,
     );
   }
   return { [Model.modelName.toLowerCase()]: resource };
@@ -34,7 +34,7 @@ const findResources = async <T>(Model: Model<T>, QueryId: Types.ObjectId) => {
 const findAllResources = async <T>(
   Model: Model<T>,
   Query: Record<string, unknown>,
-  searchField: string[]
+  searchField: string[],
 ) => {
   console.log("Query:", Query);
 
@@ -54,12 +54,12 @@ const findAllResources = async <T>(
 const updateResources = async <T>(
   Model: Model<T>,
   updateId: Types.ObjectId,
-  payload: Partial<T>
+  payload: Partial<T>,
 ) => {
   if (!updateId) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `${Model.modelName} id is required to update`
+      `${Model.modelName} id is required to update`,
     );
   }
   const updateResource = await Model.findByIdAndUpdate(updateId, payload, {
@@ -69,7 +69,7 @@ const updateResources = async <T>(
   if (!updateResource) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `Id:${updateId} of ${Model.modelName} not updated`
+      `Id:${updateId} of ${Model.modelName} not updated`,
     );
   }
 
@@ -80,13 +80,13 @@ const deleteResources = async <T, K extends keyof T | undefined = undefined>(
   Model: Model<T>,
   deleteId: Types.ObjectId,
   ownerId?: Types.ObjectId,
-  owner?: K
+  owner?: K,
 ) => {
   const resource = await Model.findById(deleteId);
   if (!resource) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `Id:${deleteId} of ${Model.modelName} not found`
+      `Id:${deleteId} of ${Model.modelName} not found`,
     );
   }
 
@@ -97,13 +97,13 @@ const deleteResources = async <T, K extends keyof T | undefined = undefined>(
       if (ownerId.toString() !== resource[owner].toString()) {
         throw new AppError(
           httpStatus.NOT_ACCEPTABLE,
-          "Owner does not own this resource"
+          "Owner does not own this resource",
         );
       }
     } else {
       throw new AppError(
         httpStatus.NOT_FOUND,
-        `${String(owner)} field not found in ${Model.modelName}`
+        `${String(owner)} field not found in ${Model.modelName}`,
       );
     }
   }
@@ -112,7 +112,7 @@ const deleteResources = async <T, K extends keyof T | undefined = undefined>(
   if (!result.deletedCount) {
     throw new AppError(
       httpStatus.NOT_IMPLEMENTED,
-      `Id:${deleteId} of ${Model.modelName} deletion failed`
+      `Id:${deleteId} of ${Model.modelName} deletion failed`,
     );
   }
   return {

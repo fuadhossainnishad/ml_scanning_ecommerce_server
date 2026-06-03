@@ -7,9 +7,11 @@ import GenericService from "../../utility/genericService.helpers";
 import { IBrand } from "./brand.interface";
 // import NotificationServices from "../notification/notification.service";
 import Brand from "./brand.model";
+import NotificationService from "../notification/notification.service";
+import { NotificationType } from "../notification/notification.interface";
+import { idConverter } from "../../utility/idConverter";
 
 const getBrand: RequestHandler = catchAsync(async (req, res) => {
-
   // if (!req.user) {
   //   throw new AppError(httpStatus.BAD_REQUEST, "Authenticate User/Brand is required", "");
   // }
@@ -17,7 +19,7 @@ const getBrand: RequestHandler = catchAsync(async (req, res) => {
   const result = await GenericService.findAllResources<IBrand>(
     Brand,
     req.query,
-    []
+    [],
   );
 
   sendResponse(res, {
@@ -34,7 +36,11 @@ const updateBrand: RequestHandler = catchAsync(async (req, res) => {
   }
 
   const brandId = req.user?._id;
-  const result = await GenericService.updateResources<IBrand>(Brand, brandId, req.body.data,);
+  const result = await GenericService.updateResources<IBrand>(
+    Brand,
+    brandId,
+    req.body.data,
+  );
 
   // await NotificationServices.sendNoification({
   //   ownerId: req.user?._id,
@@ -55,9 +61,43 @@ const updateBrand: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const deleteBrand: RequestHandler = catchAsync(async (req, res) => {
+  if (!req.user) {
+    throw new AppError(httpStatus.UNAUTHORIZED, "Brand not authenticated");
+  }
+
+  if (req.user.role !== "Brand" && req.user.role !== "Admin") {
+    throw new AppError(httpStatus.FORBIDDEN, "Admin/Brand access required");
+  }
+
+  const brandId = await idConverter(req.params.id);
+
+  const result = await GenericService.updateResources<IBrand>(Brand, brandId, {
+    isDeleted: true,
+  });
+
+  // Send notification to deleted user
+  await NotificationService.sendNotification({
+    ownerId: req.user._id,
+    receiverId: [brandId],
+    type: NotificationType.SYSTEM,
+    title: "Account Deleted",
+    body: "Your account has been deleted by administrator",
+    data: { brandId: brandId.toString() },
+  });
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Successfully deleted brand  ",
+    data: result,
+  });
+});
+
 const BrandController = {
   getBrand,
   updateBrand,
+  deleteBrand,
 };
 
 export default BrandController;

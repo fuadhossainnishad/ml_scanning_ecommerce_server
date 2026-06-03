@@ -35,7 +35,7 @@ router
     UserController.getUser
   )
   .delete(
-    auth("Admin"),
+    auth("User","Admin"),
     UserController.deleteUser
   )
   .patch(

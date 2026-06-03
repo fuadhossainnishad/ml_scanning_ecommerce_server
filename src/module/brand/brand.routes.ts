@@ -7,33 +7,29 @@ import { fileHandle } from "../../middleware/fileHandle";
 const router = express.Router();
 
 router
-  .route('/')
+  .route("/")
   .get(
     // auth('User', 'Brand'),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-    BrandController.getBrand
+    BrandController.getBrand,
   )
   .patch(
-    auth('Brand'),
+    auth("Brand"),
     upload.fields([
       { name: "brandLogo", maxCount: 1 },
-      { name: "coverPhoto", maxCount: 1 }
+      { name: "coverPhoto", maxCount: 1 },
     ]),
     fileHandle("brandLogo"),
     fileHandle("coverPhoto"),
     //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-    BrandController.updateBrand
-  )
-
-router
-  .route('/:id')
-  .delete(
-    // auth('User','Brand'),
-    //   validationRequest(AuthValidationSchema.playerSignUpValidation),
-    BrandController.updateBrand
+    BrandController.updateBrand,
   );
 
-
+router.route("/:id").delete(
+  auth("Admin", "Brand"),
+  //   validationRequest(AuthValidationSchema.playerSignUpValidation),
+  BrandController.deleteBrand,
+);
 
 const BrandRouter = router;
 export default BrandRouter;

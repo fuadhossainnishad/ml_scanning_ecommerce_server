@@ -36,7 +36,7 @@ const updateUser: RequestHandler = catchAsync(async (req, res) => {
   const result = await GenericService.updateResources<IUser>(
     User,
     req.user._id,
-    req.body.data
+    req.body.data,
   );
 
   sendResponse(res, {
@@ -52,17 +52,15 @@ const deleteUser: RequestHandler = catchAsync(async (req, res) => {
     throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
   }
 
-  if (req.user.role !== 'Admin') {
-    throw new AppError(httpStatus.FORBIDDEN, "Admin access required");
+  if (req.user.role !== "User" && req.user.role !== "Admin") {
+    throw new AppError(httpStatus.FORBIDDEN, "Admin/User access required");
   }
 
   const userId = await idConverter(req.params.id);
 
-  const result = await GenericService.updateResources<IUser>(
-    User,
-    userId,
-    { isDeleted: true }
-  );
+  const result = await GenericService.updateResources<IUser>(User, userId, {
+    isDeleted: true,
+  });
 
   // Send notification to deleted user
   await NotificationService.sendNotification({
@@ -71,7 +69,7 @@ const deleteUser: RequestHandler = catchAsync(async (req, res) => {
     type: NotificationType.SYSTEM,
     title: "Account Deleted",
     body: "Your account has been deleted by administrator",
-    data: { userId: userId.toString() }
+    data: { userId: userId.toString() },
   });
 
   sendResponse(res, {
@@ -89,7 +87,7 @@ const registerFCMToken: RequestHandler = catchAsync(async (req, res) => {
   }
 
   const { token, device } = req.body.data || req.body;
-  console.log("fcm register:", req.body.data)
+  console.log("fcm register:", req.body.data);
   if (!token) {
     throw new AppError(httpStatus.BAD_REQUEST, "FCM token is required");
   }
@@ -107,10 +105,10 @@ const registerFCMToken: RequestHandler = catchAsync(async (req, res) => {
       $push: {
         fcmTokens: {
           token,
-          device: device || 'android',
-          addedAt: new Date()
-        }
-      }
+          device: device || "android",
+          addedAt: new Date(),
+        },
+      },
     });
 
     console.log(`✅ FCM token registered for ${req.user.role} ${req.user._id}`);
@@ -120,7 +118,7 @@ const registerFCMToken: RequestHandler = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: "FCM token registered successfully",
-    data: 'fcm registered'
+    data: "fcm registered",
   });
 });
 
@@ -131,14 +129,14 @@ const removeFCMToken: RequestHandler = catchAsync(async (req, res) => {
   }
 
   const { token } = req.body.data || req.body;
-  console.log("fcm register:", req.body.data)
+  console.log("fcm register:", req.body.data);
 
   if (!token) {
     throw new AppError(httpStatus.BAD_REQUEST, "FCM token is required");
   }
 
   await Admin.findByIdAndUpdate(req.user._id, {
-    $pull: { fcmTokens: { token } }
+    $pull: { fcmTokens: { token } },
   });
 
   console.log(`✅ FCM token removed for ${req.user.role} ${req.user._id}`);
@@ -147,7 +145,7 @@ const removeFCMToken: RequestHandler = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: "FCM token removed successfully",
-    data: 'fcm removed'
+    data: "fcm removed",
   });
 });
 
@@ -156,7 +154,7 @@ const UserController = {
   updateUser,
   deleteUser,
   registerFCMToken,
-  removeFCMToken
+  removeFCMToken,
 };
 
 export default UserController;

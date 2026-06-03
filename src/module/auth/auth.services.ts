@@ -18,7 +18,10 @@ const loginService = async (payload: ISignIn) => {
   console.log(payload);
 
   const QueryModel = Admin;
-  const query: Record<string, unknown> = { email: payload.email };
+  const query: Record<string, unknown> = {
+    email: payload.email,
+    isDeleted: { $ne: true },
+  };
 
   // if (payload.sub) {
   //   query["sub"] = payload.sub;
@@ -30,6 +33,7 @@ const loginService = async (payload: ISignIn) => {
     password: 1,
     email: 1,
     role: 1,
+    isDeleted: 1,
   });
 
   if (!isExist) {
