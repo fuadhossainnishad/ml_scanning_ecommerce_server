@@ -72,9 +72,7 @@ const deleteBrand: RequestHandler = catchAsync(async (req, res) => {
 
   const brandId = await idConverter(req.params.id);
 
-  const result = await GenericService.updateResources<IBrand>(Brand, brandId, {
-    isDeleted: true,
-  });
+  const result = await GenericService.deleteResources<IBrand>(Brand, brandId);
 
   // Send notification to deleted user
   await NotificationService.sendNotification({
@@ -89,7 +87,7 @@ const deleteBrand: RequestHandler = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "Successfully deleted brand  ",
+    message: "Successfully deleted brand",
     data: result,
   });
 });

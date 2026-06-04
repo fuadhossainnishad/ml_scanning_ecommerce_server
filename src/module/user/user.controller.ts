@@ -47,6 +47,41 @@ const updateUser: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+// const deleteUser: RequestHandler = catchAsync(async (req, res) => {
+//   if (!req.user) {
+//     throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
+//   }
+
+//   if (req.user.role !== "User" && req.user.role !== "Admin") {
+//     throw new AppError(httpStatus.FORBIDDEN, "Admin/User access required");
+//   }
+
+//   const userId = await idConverter(req.params.id);
+
+//   const result = await GenericService.updateResources<IUser>(User, userId, {
+//     isDeleted: true,
+//   });
+
+//   // Send notification to deleted user
+//   await NotificationService.sendNotification({
+//     ownerId: req.user._id,
+//     receiverId: [userId],
+//     type: NotificationType.SYSTEM,
+//     title: "Account Deleted",
+//     body: "Your account has been deleted by administrator",
+//     data: { userId: userId.toString() },
+//   });
+
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.OK,
+//     message: "Successfully deleted user",
+//     data: result,
+//   });
+// });
+
+// Register FCM Token
+
 const deleteUser: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
@@ -58,9 +93,7 @@ const deleteUser: RequestHandler = catchAsync(async (req, res) => {
 
   const userId = await idConverter(req.params.id);
 
-  const result = await GenericService.updateResources<IUser>(User, userId, {
-    isDeleted: true,
-  });
+  const result = await GenericService.deleteResources<IUser>(User, userId);
 
   // Send notification to deleted user
   await NotificationService.sendNotification({
@@ -79,8 +112,6 @@ const deleteUser: RequestHandler = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
-// Register FCM Token
 const registerFCMToken: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
     throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
