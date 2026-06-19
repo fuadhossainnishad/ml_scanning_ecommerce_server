@@ -98,7 +98,7 @@ const getAllPost: RequestHandler = catchAsync(async (req, res) => {
   //   );
   // }
 
-  const result = await PostServices.getPostService(req);
+  const result = await PostServices.getPostService_v2(req);
 
   sendResponse(res, {
     success: true,

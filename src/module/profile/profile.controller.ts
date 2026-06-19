@@ -6,6 +6,10 @@ import sendResponse from "../../utility/sendResponse";
 import ProfileServices from "./profile.services";
 import NotificationService from "../notification/notification.service";
 import { NotificationType } from "../notification/notification.interface";
+import { idConverter } from "../../utility/idConverter";
+import GenericService from "../../utility/genericService.helpers";
+import BlockProfile from "./block.model";
+import { IBlockProfile } from "./block.interface";
 
 const getProfile: RequestHandler = catchAsync(async (req, res) => {
   if (!req.user) {
@@ -73,9 +77,88 @@ const getProfile2: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const blockProfile: RequestHandler = catchAsync(async (req, res) => {
+  const { id: blockedId } = req.params;
+
+  if (
+    !req.user ||
+    (req.user.role !== "User" && req.user.role !== "Brand")
+  ) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Authenticated User/Brand is required",
+      ""
+    );
+  }
+
+  if (!blockedId) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Blocked user id is required", "");
+  }
+
+  if (req.user._id.toString() === blockedId) {
+    throw new AppError(httpStatus.BAD_REQUEST, "You cannot block yourself", "");
+  }
+
+  const payload = {
+    blockerId: await idConverter(req.user._id),
+    blockedId: await idConverter(blockedId),
+    createdAt: new Date()
+  };
+
+  const result = await GenericService.insertResources<IBlockProfile>(
+    BlockProfile,
+    payload
+  );
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: "Profile blocked successfully",
+    data: result,
+  });
+});
+const unblockProfile: RequestHandler = catchAsync(async (req, res) => {
+  const { id: blockedId } = req.params;
+
+  if (
+    !req.user ||
+    (req.user.role !== "User" && req.user.role !== "Brand")
+  ) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Authenticated User/Brand is required",
+      ""
+    );
+  }
+
+  if (!blockedId) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Blocked user id is required", "");
+  }
+
+  const blockerId = req.user._id;
+
+  const result = await BlockProfile.findOneAndDelete({
+    blockerId,
+    blockedId: await idConverter(blockedId),
+  });
+
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, "Block relation not found", "");
+  }
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Profile unblocked successfully",
+    data: result,
+  });
+});
+
 const ProfileController = {
   getProfile,
   getProfile2,
+  blockProfile,
+  unblockProfile,
 };
 
 export default ProfileController;
