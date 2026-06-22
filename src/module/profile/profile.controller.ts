@@ -172,7 +172,7 @@ const getBlockProfile: RequestHandler = catchAsync(async (req, res) => {
     success: true,
     statusCode: httpStatus.OK,
     message: "Blocked profiles retrieved successfully",
-    data: result.data,
+    data: result,
   });
 });
 
