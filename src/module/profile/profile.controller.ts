@@ -154,11 +154,34 @@ const unblockProfile: RequestHandler = catchAsync(async (req, res) => {
   });
 });
 
+const getBlockProfile: RequestHandler = catchAsync(async (req, res) => {
+  if (
+    !req.user ||
+    (req.user.role !== "User" && req.user.role !== "Brand")
+  ) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Authenticated User/Brand is required",
+      ""
+    );
+  }
+
+  const result = await ProfileServices.getBlockedProfilesService(req);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Blocked profiles retrieved successfully",
+    data: result.data,
+  });
+});
+
 const ProfileController = {
   getProfile,
   getProfile2,
   blockProfile,
   unblockProfile,
+  getBlockProfile
 };
 
 export default ProfileController;

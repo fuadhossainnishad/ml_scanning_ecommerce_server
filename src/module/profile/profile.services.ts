@@ -6,6 +6,7 @@ import { idConverter } from "../../utility/idConverter";
 import Admin from "../admin/admin.model";
 import { TRole } from "../../types/express";
 import { Request } from "express";
+import BlockProfile from "./block.model";
 
 const getProfileService = async (req: Request) => {
   const { _id: currentUserId, role: currentUserRole } = req.user;
@@ -431,9 +432,106 @@ const getProfileService2 = async (req: Request) => {
   return profileData[0];
 };
 
+
+const getBlockedProfilesService = async (req: Request) => {
+  const currentUserId = req.user?._id;
+
+  if (!currentUserId) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "Authenticated user is required"
+    );
+  }
+
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+  console.log("currentUserId:", currentUserId);
+  console.log("type:", typeof currentUserId);
+  console.log("isValid:", await idConverter(currentUserId));
+
+  const [blockedProfiles, total] = await Promise.all([
+    BlockProfile.aggregate([
+      {
+        $match: {
+          blockerId: await idConverter(currentUserId),
+        },
+      },
+
+      {
+        $lookup: {
+          from: "Admin",
+          localField: "blockedId",
+          foreignField: "_id",
+          as: "profile",
+        },
+      },
+
+      {
+        $unwind: "$profile",
+      },
+
+      {
+        $match: {
+          "profile.isDeleted": false,
+        },
+      },
+
+      {
+        $project: {
+          _id: "$profile._id",
+          role: "$profile.role",
+          email: "$profile.email",
+          userName: "$profile.userName",
+
+          firstName: "$profile.firstName",
+          lastName: "$profile.lastName",
+          profile: "$profile.profile",
+
+          brandName: "$profile.brandName",
+          brandLogo: "$profile.brandLogo",
+
+          blockedAt: "$createdAt",
+        },
+      },
+
+      {
+        $sort: {
+          blockedAt: -1,
+        },
+      },
+
+      {
+        $skip: skip,
+      },
+
+      {
+        $limit: limit,
+      },
+    ]),
+
+    BlockProfile.countDocuments({
+      blockerId: currentUserId,
+    }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
+    },
+    data: blockedProfiles,
+  };
+};
+
+
+
 const ProfileService = {
   getProfileService,
   getProfileService2,
+  getBlockedProfilesService
 };
 
 export default ProfileService;

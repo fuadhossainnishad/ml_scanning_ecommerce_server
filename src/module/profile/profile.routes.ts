@@ -5,9 +5,9 @@ import auth2 from "../../middleware/auth2";
 
 const router = express.Router();
 
-router.route("/:id").get(auth2("User", "Brand"), ProfileController.getProfile2);
 
 router.get("/", auth("User", "Brand", "Admin"), ProfileController.getProfile);
+router.get("/blocklist", auth("User", "Brand"), ProfileController.getBlockProfile);
 
 router.route("/block/:id")
     .post(
@@ -19,6 +19,7 @@ router.route("/block/:id")
         ProfileController.unblockProfile,
     );
 
+router.route("/:id").get(auth2("User", "Brand"), ProfileController.getProfile2);
 
 const ProfileRouter = router;
 export default ProfileRouter;
